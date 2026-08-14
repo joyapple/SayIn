@@ -144,35 +144,35 @@
     <div class="brand-logo">S</div>
     <div>
       <div class="brand-name">SayIn</div>
-      <div class="brand-sub">接收窗口</div>
+      <div class="brand-sub" data-i18n="desk.receiver">接收窗口</div>
     </div>
   </div>
   <div class="topbar-right">
     <div class="status-chip warn" id="statusChip">
-      <span class="d"></span><span id="statusText">连接中…</span>
+      <span class="d"></span><span id="statusText" data-i18n="status.connecting">连接中…</span>
     </div>
-    <a class="nav-link" href="/settings">设置</a>
+    <a class="nav-link" href="/settings" data-i18n="nav.settings">设置</a>
   </div>
 </div>
 
 <div class="wrap">
-  <div class="alert">
+  <div class="alert" data-i18n="desk.usage">
     <b>使用方式</b>：手机打开 <code>http://<span id="ip">—</span>:8000</code> → 用输入法写内容 → 点「发送」→ 文字出现在下面。收到后可直接 <b>⌘V</b> 粘贴，或在「<a href="/settings" style="color:var(--foreground);text-decoration:underline">设置</a>」开启自动粘贴。
   </div>
 
   <div class="card">
     <div class="card-header">
       <div>
-        <div class="card-title">当前内容</div>
+        <div class="card-title" data-i18n="desk.currentContent">当前内容</div>
         <div class="card-description" id="count">0 字</div>
       </div>
     </div>
     <div class="card-content">
-      <textarea class="editor" id="box" placeholder="手机发送的文字会自动出现在这里"></textarea>
+      <textarea class="editor" id="box" data-i18n-ph="desk.placeholder" placeholder="手机发送的文字会自动出现在这里"></textarea>
       <div class="actions">
-        <button class="btn btn-primary" id="copyBtn" disabled>复制全部</button>
-        <button class="btn btn-outline" id="pasteNowBtn">立即粘贴 (⌘V)</button>
-        <button class="btn btn-ghost" id="clearBtn">清空</button>
+        <button class="btn btn-primary" id="copyBtn" disabled data-i18n="desk.copyAll">复制全部</button>
+        <button class="btn btn-outline" id="pasteNowBtn" data-i18n="desk.pasteNow">立即粘贴 (⌘V)</button>
+        <button class="btn btn-ghost" id="clearBtn" data-i18n="desk.clear">清空</button>
         <span class="mode-text" id="modeIndicator">追加模式 · 自动粘贴：关</span>
       </div>
     </div>
@@ -181,10 +181,10 @@
   <div class="card">
     <div class="card-header">
       <div>
-        <div class="card-title">历史记录</div>
-        <div class="card-description">持久化保存 · 刷新不丢失</div>
+        <div class="card-title" data-i18n="desk.history">历史记录</div>
+        <div class="card-description" data-i18n="desk.historyDesc">持久化保存 · 刷新不丢失</div>
       </div>
-      <button class="btn btn-ghost" id="clearHistoryBtn" style="color:var(--destructive)">清空历史</button>
+      <button class="btn btn-ghost" id="clearHistoryBtn" style="color:var(--destructive)" data-i18n="desk.clearHistory">清空历史</button>
     </div>
     <div class="history-list" id="history"></div>
   </div>
@@ -200,11 +200,88 @@
   const statusChip = $('statusChip'), statusText = $('statusText');
   const history = $('history'), clearHistoryBtn = $('clearHistoryBtn');
   const modeIndicator = $('modeIndicator');
-  let ws = null, records = [], settings = { autoPaste: false, appendMode: true, enterAfterPaste: false };
+  let ws = null, records = [], settings = { autoPaste: false, appendMode: true, enterAfterPaste: false, language: 'zh' };
+  let lang = 'zh';
+
+  // === i18n ===
+  const I18N = {
+    zh: {
+      'desk.receiver': '接收窗口', 'nav.settings': '设置',
+      'status.connecting': '连接中…', 'status.connected': '已连接 · 等待手机发送',
+      'status.failed': '无法连接', 'status.disconnected': '已断开，重连中…',
+      'desk.usage': '<b>使用方式</b>：手机打开 <code>http://<span id="ip">—</span>:8000</code> → 用输入法写内容 → 点「发送」→ 文字出现在下面。收到后可直接 <b>⌘V</b> 粘贴，或在「<a href="/settings" style="color:var(--foreground);text-decoration:underline">设置</a>」开启自动粘贴。',
+      'desk.currentContent': '当前内容', 'desk.placeholder': '手机发送的文字会自动出现在这里',
+      'desk.copyAll': '复制全部', 'desk.pasteNow': '立即粘贴 (⌘V)', 'desk.clear': '清空',
+      'desk.history': '历史记录', 'desk.historyDesc': '持久化保存 · 刷新不丢失', 'desk.clearHistory': '清空历史',
+      'desk.emptyHistory': '收到的文字会显示在这里',
+      'mode.append': '追加模式', 'mode.overwrite': '覆盖模式',
+      'mode.autoPasteOn': '自动粘贴：开', 'mode.autoPasteOff': '自动粘贴：关',
+      'mode.enterOn': '回车：开', 'mode.enterOff': '回车：关',
+      'count.chars': n => `${n} 字`,
+      'badge.receiver': '接收窗口', 'from.phone': '手机',
+      'action.copy': '复制', 'action.load': '填入',
+      'btn.copied': '已复制',
+      'toast.copied': '已复制', 'toast.copiedN': (n, s) => `已复制 ${n} 字${s ? ' → ' + s : ''}`,
+      'toast.copiedHint': (n) => `已复制 ${n} 字，切应用按 ⌘V 粘贴`,
+      'toast.noContent': '没有内容可粘贴', 'toast.pastedEnter': '已粘贴并回车', 'toast.pasted': '已粘贴到光标处',
+      'toast.pasteFailed': '粘贴失败，请检查辅助功能权限', 'toast.pasteFailedShort': '粘贴失败',
+      'toast.autoPastedEnter': '已自动粘贴并回车', 'toast.autoPasted': '已自动粘贴到光标',
+      'toast.autoPasteFailed': '自动粘贴失败，请授权辅助功能',
+      'toast.received': (n, s) => `收到 ${n} 字${s ? ' → ' + s : ''}`,
+      'toast.historyEmpty': '历史已为空', 'toast.historyCleared': '历史已清空',
+      'toast.loaded': '已填入编辑框',
+      'confirm.clearContent': '清空当前内容？', 'confirm.clearHistory': '确定清空所有历史记录？此操作不可恢复。',
+    },
+    en: {
+      'desk.receiver': 'Receiver', 'nav.settings': 'Settings',
+      'status.connecting': 'Connecting…', 'status.connected': 'Connected · waiting for phone',
+      'status.failed': 'Cannot connect', 'status.disconnected': 'Disconnected, reconnecting…',
+      'desk.usage': '<b>How to use</b>: Open <code>http://<span id="ip">—</span>:8000</code> on your phone → type with your keyboard → tap "Send" → text appears below. Press <b>⌘V</b> to paste, or enable auto-paste in <a href="/settings" style="color:var(--foreground);text-decoration:underline">Settings</a>.',
+      'desk.currentContent': 'Current content', 'desk.placeholder': 'Text from phone will appear here',
+      'desk.copyAll': 'Copy all', 'desk.pasteNow': 'Paste now (⌘V)', 'desk.clear': 'Clear',
+      'desk.history': 'History', 'desk.historyDesc': 'Persisted · survives refresh', 'desk.clearHistory': 'Clear history',
+      'desk.emptyHistory': 'Received text will appear here',
+      'mode.append': 'Append', 'mode.overwrite': 'Overwrite',
+      'mode.autoPasteOn': 'Auto-paste: on', 'mode.autoPasteOff': 'Auto-paste: off',
+      'mode.enterOn': 'Enter: on', 'mode.enterOff': 'Enter: off',
+      'count.chars': n => `${n} chars`,
+      'badge.receiver': 'Receiver', 'from.phone': 'Phone',
+      'action.copy': 'Copy', 'action.load': 'Load',
+      'btn.copied': 'Copied',
+      'toast.copied': 'Copied', 'toast.copiedN': (n, s) => `Copied ${n} chars${s ? ' → ' + s : ''}`,
+      'toast.copiedHint': (n) => `Copied ${n} chars, switch app and press ⌘V`,
+      'toast.noContent': 'Nothing to paste', 'toast.pastedEnter': 'Pasted + Enter', 'toast.pasted': 'Pasted at cursor',
+      'toast.pasteFailed': 'Paste failed, check Accessibility permission', 'toast.pasteFailedShort': 'Paste failed',
+      'toast.autoPastedEnter': 'Auto-pasted + Enter', 'toast.autoPasted': 'Auto-pasted at cursor',
+      'toast.autoPasteFailed': 'Auto-paste failed, grant Accessibility permission',
+      'toast.received': (n, s) => `Received ${n} chars${s ? ' → ' + s : ''}`,
+      'toast.historyEmpty': 'History is empty', 'toast.historyCleared': 'History cleared',
+      'toast.loaded': 'Loaded into editor',
+      'confirm.clearContent': 'Clear current content?', 'confirm.clearHistory': 'Clear all history? This cannot be undone.',
+    },
+  };
+  function t(key, ...args) {
+    const v = (I18N[lang] && I18N[lang][key]) || (I18N.zh[key]) || key;
+    return typeof v === 'function' ? v(...args) : v;
+  }
+  function applyLang() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      const v = t(key);
+      if (v.includes('<')) el.innerHTML = v; else el.textContent = v;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      el.placeholder = t(el.dataset.i18nPh);
+    });
+    countEl.textContent = t('count.chars', box.value.length);
+    updateModeIndicator();
+    renderHistory();
+  }
 
   function toast(msg, type = '', ms = 2200) {
-    const t = $('toast'); t.textContent = msg; t.className = 'toast show ' + type;
-    clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast ' + type, ms);
+    const tt = $('toast'); tt.textContent = msg; tt.className = 'toast show ' + type;
+    clearTimeout(toast._t); toast._t = setTimeout(() => tt.className = 'toast ' + type, ms);
   }
   function setStatus(state, text) {
     statusChip.className = 'status-chip ' + (state || '');
@@ -212,17 +289,25 @@
   }
   function updateModeIndicator() {
     const parts = [];
-    parts.push(settings.appendMode ? '追加模式' : '覆盖模式');
-    parts.push('自动粘贴：' + (settings.autoPaste ? '开' : '关'));
-    if (settings.autoPaste) parts.push('回车：' + (settings.enterAfterPaste ? '开' : '关'));
+    parts.push(settings.appendMode ? t('mode.append') : t('mode.overwrite'));
+    parts.push(settings.autoPaste ? t('mode.autoPasteOn') : t('mode.autoPasteOff'));
+    if (settings.autoPaste) parts.push(settings.enterAfterPaste ? t('mode.enterOn') : t('mode.enterOff'));
     modeIndicator.textContent = parts.join(' · ');
   }
+
+  async function loadSettings() {
+    try {
+      const r = await fetch('/settings'); const j = await r.json();
+      if (j.ok && j.settings) { settings = { ...settings, ...j.settings }; lang = settings.language || 'zh'; applyLang(); }
+    } catch {}
+  }
+  loadSettings();
 
   async function loadHistory() {
     try {
       const r = await fetch('/history'); const j = await r.json();
       if (j.ok && Array.isArray(j.history)) {
-        records = j.history.map(h => ({ text: h.text, t: h.t || new Date(h.ts).toLocaleTimeString('zh-CN', { hour12: false }), from: h.from || '手机', targetApp: h.targetApp || '' }));
+        records = j.history.map(h => ({ text: h.text, t: h.t || new Date(h.ts).toLocaleTimeString('zh-CN', { hour12: false }), from: h.from || t('from.phone'), targetApp: h.targetApp || '' }));
         renderHistory();
       }
     } catch {}
@@ -230,44 +315,44 @@
   loadHistory();
 
   clearHistoryBtn.onclick = async () => {
-    if (!records.length) return toast('历史已为空');
-    if (!confirm('确定清空所有历史记录？此操作不可恢复。')) return;
+    if (!records.length) return toast(t('toast.historyEmpty'));
+    if (!confirm(t('confirm.clearHistory'))) return;
     try { await fetch('/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) }); } catch {}
-    records = []; renderHistory(); toast('历史已清空', 'success');
+    records = []; renderHistory(); toast(t('toast.historyCleared'), 'success');
   };
 
   copyBtn.onclick = async () => {
     const text = box.value; if (!text) return;
     try { await navigator.clipboard.writeText(text); } catch { box.select(); document.execCommand('copy'); }
-    copyBtn.classList.add('btn-done'); copyBtn.textContent = '已复制';
-    setTimeout(() => { copyBtn.classList.remove('btn-done'); copyBtn.textContent = '复制全部'; }, 1000);
-    toast('已复制 ' + text.length + ' 字，切应用按 ⌘V 粘贴', 'success', 3000);
+    copyBtn.classList.add('btn-done'); copyBtn.textContent = t('btn.copied');
+    setTimeout(() => { copyBtn.classList.remove('btn-done'); copyBtn.textContent = t('desk.copyAll'); }, 1000);
+    toast(t('toast.copiedHint', text.length), 'success', 3000);
   };
   box.addEventListener('input', () => {
-    countEl.textContent = box.value.length + ' 字';
+    countEl.textContent = t('count.chars', box.value.length);
     copyBtn.disabled = !box.value.trim();
   });
-  clearBtn.onclick = () => { if (box.value && confirm('清空当前内容？')) { box.value = ''; box.dispatchEvent(new Event('input')); } };
+  clearBtn.onclick = () => { if (box.value && confirm(t('confirm.clearContent'))) { box.value = ''; box.dispatchEvent(new Event('input')); } };
 
   pasteNowBtn.onclick = async () => {
-    if (!box.value.trim()) return toast('没有内容可粘贴', 'error');
+    if (!box.value.trim()) return toast(t('toast.noContent'), 'error');
     try { await navigator.clipboard.writeText(box.value); } catch {}
     try {
       const r = await fetch('/paste', { method: 'POST' }); const j = await r.json();
-      if (j.ok) toast(j.enterOk ? '已粘贴并回车' : '已粘贴到光标处', 'success');
-      else toast('粘贴失败，请检查辅助功能权限', 'error', 3500);
-    } catch { toast('粘贴失败', 'error'); }
+      if (j.ok) toast(j.enterOk ? t('toast.pastedEnter') : t('toast.pasted'), 'success');
+      else toast(t('toast.pasteFailed'), 'error', 3500);
+    } catch { toast(t('toast.pasteFailedShort'), 'error'); }
   };
 
   function tryWS(url, to = 3000) {
     return new Promise((rs, rj) => {
-      const s = new WebSocket(url); const t = setTimeout(() => { try { s.close(); } catch {} rj(new Error('to')); }, to);
-      s.onopen = () => { clearTimeout(t); rs(s); };
-      s.onerror = () => { clearTimeout(t); rj(new Error('err')); };
+      const s = new WebSocket(url); const tm = setTimeout(() => { try { s.close(); } catch {} rj(new Error('to')); }, to);
+      s.onopen = () => { clearTimeout(tm); rs(s); };
+      s.onerror = () => { clearTimeout(tm); rj(new Error('err')); };
     });
   }
   async function doConnect() {
-    setStatus('warn', '连接中…');
+    setStatus('warn', t('status.connecting'));
     const host = location.hostname;
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const port = location.port || (location.protocol === 'https:' ? '443' : '80');
@@ -275,23 +360,23 @@
     for (const url of [`${proto}://${host}:${port}/desk`, `${proto === 'wss' ? 'ws' : 'wss'}://${host}:${otherPort}/desk`]) {
       try { ws = await tryWS(url); break; } catch {}
     }
-    if (!ws) { setStatus('err', '无法连接'); setTimeout(doConnect, 4000); return; }
+    if (!ws) { setStatus('err', t('status.failed')); setTimeout(doConnect, 4000); return; }
     ws.onmessage = (ev) => {
       try {
         const m = JSON.parse(ev.data);
         if (m.type === 'hello') {
-          setStatus('ok', '已连接 · 等待手机发送');
-          if (m.settings) { settings = { ...settings, ...m.settings }; updateModeIndicator(); }
+          setStatus('ok', t('status.connected'));
+          if (m.settings) { settings = { ...settings, ...m.settings }; lang = settings.language || lang; applyLang(); updateModeIndicator(); }
         }
-        else if (m.type === 'settings' && m.settings) { settings = { ...settings, ...m.settings }; updateModeIndicator(); }
+        else if (m.type === 'settings' && m.settings) { settings = { ...settings, ...m.settings }; lang = settings.language || lang; applyLang(); updateModeIndicator(); }
         else if (m.type === 'text' && typeof m.text === 'string') receive(m.text, m.ts, m.from, m.targetApp);
         else if (m.type === 'paste_done') {
-          if (m.ok) toast(m.enterOk ? '已自动粘贴并回车' : '已自动粘贴到光标', 'success');
-          else toast('自动粘贴失败，请授权辅助功能', 'error', 3500);
+          if (m.ok) toast(m.enterOk ? t('toast.autoPastedEnter') : t('toast.autoPasted'), 'success');
+          else toast(t('toast.autoPasteFailed'), 'error', 3500);
         }
       } catch {}
     };
-    ws.onclose = () => { setStatus('', '已断开，重连中…'); setTimeout(doConnect, 3000); };
+    ws.onclose = () => { setStatus('', t('status.disconnected')); setTimeout(doConnect, 3000); };
     ws.onerror = () => {};
   }
 
@@ -306,11 +391,11 @@
     navigator.clipboard?.writeText(box.value).catch(() => {
       try { box.select(); document.execCommand('copy'); box.setSelectionRange(box.value.length, box.value.length); } catch {}
     });
-    const t = new Date(ts || Date.now()).toLocaleTimeString('zh-CN', { hour12: false });
-    records.unshift({ text, t, from: from || '手机', targetApp: targetApp || '' });
+    const tm = new Date(ts || Date.now()).toLocaleTimeString('zh-CN', { hour12: false });
+    records.unshift({ text, t: tm, from: from || t('from.phone'), targetApp: targetApp || '' });
     if (records.length > 100) records.pop();
     renderHistory();
-    toast(`收到 ${text.length} 字${targetApp ? ' → ' + targetApp : ''}`, 'success');
+    toast(t('toast.received', text.length, targetApp), 'success');
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (Ctx) {
@@ -328,19 +413,23 @@
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function renderHistory() {
+    if (!records.length) {
+      history.innerHTML = `<div style="text-align:center;padding:36px 20px;color:var(--muted-foreground);font-size:13px">${t('desk.emptyHistory')}</div>`;
+      return;
+    }
     history.innerHTML = records.map((r, i) => `
       <div class="h-item ${i === 0 ? 'latest' : ''}">
         <div class="h-body">
           <div class="h-top">
-            <span class="h-badge ${r.targetApp ? '' : 'no-app'}">${r.targetApp ? esc(r.targetApp) : '接收窗口'}</span>
+            <span class="h-badge ${r.targetApp ? '' : 'no-app'}">${r.targetApp ? esc(r.targetApp) : t('badge.receiver')}</span>
             <span class="h-time">${r.t}</span>
-            <span class="h-from">${r.from} · ${r.text.length}字</span>
+            <span class="h-from">${r.from} · ${r.text.length}${lang === 'zh' ? '字' : ''}</span>
           </div>
           <div class="h-text">${esc(r.text)}</div>
         </div>
         <div class="h-actions">
-          <button class="mini-btn" data-act="copy" data-i="${i}">复制</button>
-          <button class="mini-btn" data-act="load" data-i="${i}">填入</button>
+          <button class="mini-btn" data-act="copy" data-i="${i}">${t('action.copy')}</button>
+          <button class="mini-btn" data-act="load" data-i="${i}">${t('action.load')}</button>
         </div>
       </div>
     `).join('');
@@ -350,15 +439,15 @@
     const i = +b.dataset.i; const r = records[i]; if (!r) return;
     if (b.dataset.act === 'copy') {
       try { await navigator.clipboard.writeText(r.text); } catch {}
-      toast('已复制', 'success');
+      toast(t('toast.copied'), 'success');
     } else if (b.dataset.act === 'load') {
       box.value = r.text; box.dispatchEvent(new Event('input')); box.focus();
-      toast('已填入编辑框');
+      toast(t('toast.loaded'));
     }
   });
 
-  fetch('/ip').then(r => r.text()).then(t => {
-    const ip = location.hostname !== 'localhost' ? location.hostname : t.trim();
+  fetch('/ip').then(r => r.text()).then(txt => {
+    const ip = location.hostname !== 'localhost' ? location.hostname : txt.trim();
     if (ip) $('ip').textContent = ip;
   }).catch(() => {});
 

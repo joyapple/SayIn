@@ -35,6 +35,7 @@ const DEFAULT_SETTINGS = {
   enterAfterPaste: false,  // 粘贴后自动回车发送
   appWhitelist: [],        // 可切换软件白名单（空数组=显示全部）
   lastTargetApp: '',       // 上次选择的软件
+  language: 'zh',          // 界面语言：zh | en
 };
 
 function loadSettings() {

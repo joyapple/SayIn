@@ -260,8 +260,8 @@
   <div class="install-banner" id="installBanner">
     <div class="install-icon">S</div>
     <div class="install-text">
-      <div class="install-title" id="installTitle">添加到主屏幕</div>
-      <div class="install-desc" id="installDesc">像 App 一样使用 SayIn</div>
+      <div class="install-title" id="installTitle" data-i18n="pwa.addToHome">添加到主屏幕</div>
+      <div class="install-desc" id="installDesc" data-i18n="pwa.likeApp">像 App 一样使用 SayIn</div>
     </div>
     <button class="install-btn" id="installBtn">添加</button>
     <button class="install-close" id="installClose">×</button>
@@ -269,40 +269,40 @@
 
   <div class="status-pill warn" id="statusPill">
     <span class="status-dot"></span>
-    <span class="status-text" id="statusText">连接中…</span>
-    <button class="reconnect" id="reconnectBtn">重连</button>
+    <span class="status-text" id="statusText" data-i18n="status.connecting">连接中…</span>
+    <button class="reconnect" id="reconnectBtn" data-i18n="status.reconnect">重连</button>
   </div>
 
   <div class="tabbar">
-    <button class="tab active" data-tab="send">发送</button>
-    <button class="tab" data-tab="recent">最近 <span class="badge" id="recentBadge" style="display:none">0</span></button>
+    <button class="tab active" data-tab="send" data-i18n="tab.send">发送</button>
+    <button class="tab" data-tab="recent"><span data-i18n="tab.recent">最近</span> <span class="badge" id="recentBadge" style="display:none">0</span></button>
   </div>
 
   <div class="page active" id="page-send">
     <div class="target-bar" id="targetBar">
       <div class="target-icon" id="targetIcon">◎</div>
       <div class="target-info">
-        <div class="target-label">发送到</div>
-        <div class="target-name" id="targetName">仅接收窗口</div>
+        <div class="target-label" data-i18n="send.target">发送到</div>
+        <div class="target-name" id="targetName" data-i18n="send.receiverOnly">仅接收窗口</div>
       </div>
       <span class="target-arrow">›</span>
     </div>
 
     <div class="composer">
-      <textarea class="editor" id="box" placeholder="点这里输入…&#10;语音 / 键盘均可"></textarea>
+      <textarea class="editor" id="box" data-i18n-ph="send.placeholder" placeholder="点这里输入…&#10;语音 / 键盘均可"></textarea>
       <div class="composer-actions">
         <button class="btn btn-primary" id="sendBtn" disabled>
-          <span id="sendBtnText">发送</span>
+          <span id="sendBtnText" data-i18n="send.sendBtn">发送</span>
         </button>
-        <button class="btn btn-ghost" id="clearBtn">清空</button>
+        <button class="btn btn-ghost" id="clearBtn" data-i18n="send.clear">清空</button>
       </div>
     </div>
   </div>
 
   <div class="page" id="page-recent">
     <div class="recent-header">
-      <span class="recent-title" id="recentCount">最近发送</span>
-      <button class="recent-clear" id="recentClearBtn" style="display:none">清空历史</button>
+      <span class="recent-title" id="recentCount" data-i18n="recent.title">最近发送</span>
+      <button class="recent-clear" id="recentClearBtn" style="display:none" data-i18n="recent.clear">清空历史</button>
     </div>
     <div class="recent-list" id="recentList"></div>
   </div>
@@ -312,11 +312,11 @@
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">选择目标软件</div>
+      <div class="sheet-title" data-i18n="app.selectTarget">选择目标软件</div>
       <button class="sheet-close" id="sheetClose">✕</button>
     </div>
     <div class="sheet-search">
-      <input id="appSearch" placeholder="搜索应用…" />
+      <input id="appSearch" data-i18n-ph="app.search" placeholder="搜索应用…" />
     </div>
     <div class="sheet-list" id="appList"></div>
   </div>
@@ -326,7 +326,7 @@
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">设置</div>
+      <div class="sheet-title" data-i18n="settings.title">设置</div>
       <button class="sheet-close" id="settingsClose">✕</button>
     </div>
     <div class="sheet-list" id="settingsList" style="padding-bottom:24px"></div>
@@ -338,6 +338,104 @@
 <script>
 (() => {
   const $ = id => document.getElementById(id);
+
+  // === i18n ===
+  let lang = 'zh';
+  const I18N = {
+    zh: {
+      'status.connecting': '连接中…', 'status.connected': '已连接，可以发送',
+      'status.failed': '无法连接电脑', 'status.disconnected': '已断开，重连中…',
+      'status.reconnect': '重连',
+      'tab.send': '发送', 'tab.recent': '最近',
+      'send.target': '发送到', 'send.receiverOnly': '仅接收窗口',
+      'send.placeholder': '点这里输入…\n语音 / 键盘均可',
+      'send.sendBtn': '发送', 'send.clear': '清空', 'send.sent': '已发送',
+      'send.notConnected': '未连接电脑',
+      'recent.title': '最近发送', 'recent.clear': '清空历史',
+      'recent.countN': n => `最近发送 · ${n} 条`,
+      'recent.empty': '还没有发送记录<br>去「发送」页写点什么吧',
+      'recent.confirmClear': '清空所有发送历史？此操作不可恢复。',
+      'recent.cleared': '已清空历史',
+      'recent.badge.receiver': '接收窗口',
+      'app.selectTarget': '选择目标软件', 'app.search': '搜索应用…',
+      'app.loading': '加载中…', 'app.fetchFailed': '获取应用列表失败',
+      'app.receiverOnly': '仅发送到接收窗口', 'app.noSwitch': '不切换软件',
+      'app.running': '运行中', 'app.notRunning': '未运行',
+      'app.runningHeader': '运行中', 'app.notRunningHeader': '未运行',
+      'app.empty': '没有可用应用<br>请在电脑端「设置」里添加白名单',
+      'app.switchFailed': '切换失败',
+      'app.switched': n => `已切换到「${n}」`,
+      'settings.title': '设置',
+      'settings.hint': '以下设置在<b>电脑端设置页</b>修改会自动同步。<br>打开 <code style="background:var(--muted);padding:2px 6px;border-radius:4px;font-size:12px">localhost:8000/settings</code>',
+      'settings.autoPaste': '自动粘贴到光标', 'settings.appendMode': '追加模式',
+      'settings.enterAfterPaste': '粘贴后回车发送', 'settings.whitelist': '可切换软件白名单',
+      'settings.on': '已开启', 'settings.off': '已关闭',
+      'settings.whitelistCount': n => `${n} 个`, 'settings.whitelistNone': '未设置',
+      'toast.sent': (n, s) => `已发送 ${n} 字${s ? ' → ' + s : ''}`,
+      'confirm.clearBox': '清空输入框？',
+      'pwa.addToHome': '添加到主屏幕', 'pwa.likeApp': '像 App 一样使用 SayIn',
+      'pwa.httpsTitle': '切换到 HTTPS 以获得最佳体验',
+      'pwa.httpsDesc': 'HTTP 下添加到主屏幕会保留地址栏，HTTPS 下可像 App 一样全屏使用',
+      'pwa.switch': '切换', 'pwa.install': '安装', 'pwa.gotIt': '知道了',
+      'pwa.iosDesc': '点击底部「分享」→「添加到主屏幕」，即可像 App 一样全屏使用',
+      'pwa.installDesc': '添加到主屏幕，像 App 一样全屏使用',
+      'pwa.installTitle': '安装 SayIn',
+    },
+    en: {
+      'status.connecting': 'Connecting…', 'status.connected': 'Connected, ready to send',
+      'status.failed': 'Cannot connect to desktop', 'status.disconnected': 'Disconnected, reconnecting…',
+      'status.reconnect': 'Retry',
+      'tab.send': 'Send', 'tab.recent': 'Recent',
+      'send.target': 'Send to', 'send.receiverOnly': 'Receiver only',
+      'send.placeholder': 'Tap to type…\nVoice / keyboard',
+      'send.sendBtn': 'Send', 'send.clear': 'Clear', 'send.sent': 'Sent',
+      'send.notConnected': 'Not connected',
+      'recent.title': 'Recent', 'recent.clear': 'Clear history',
+      'recent.countN': n => `Recent · ${n} item${n !== 1 ? 's' : ''}`,
+      'recent.empty': 'No messages yet<br>Go to "Send" to write something',
+      'recent.confirmClear': 'Clear all send history? This cannot be undone.',
+      'recent.cleared': 'History cleared',
+      'recent.badge.receiver': 'Receiver',
+      'app.selectTarget': 'Select target app', 'app.search': 'Search apps…',
+      'app.loading': 'Loading…', 'app.fetchFailed': 'Failed to load apps',
+      'app.receiverOnly': 'Send to receiver only', 'app.noSwitch': 'No app switching',
+      'app.running': 'Running', 'app.notRunning': 'Not running',
+      'app.runningHeader': 'Running', 'app.notRunningHeader': 'Not running',
+      'app.empty': 'No apps available<br>Add whitelist in desktop Settings',
+      'app.switchFailed': 'Switch failed',
+      'app.switched': n => `Switched to "${n}"`,
+      'settings.title': 'Settings',
+      'settings.hint': 'These settings sync from the <b>desktop settings page</b>.<br>Open <code style="background:var(--muted);padding:2px 6px;border-radius:4px;font-size:12px">localhost:8000/settings</code>',
+      'settings.autoPaste': 'Auto-paste to cursor', 'settings.appendMode': 'Append mode',
+      'settings.enterAfterPaste': 'Enter after paste', 'settings.whitelist': 'App whitelist',
+      'settings.on': 'On', 'settings.off': 'Off',
+      'settings.whitelistCount': n => `${n} app${n !== 1 ? 's' : ''}`, 'settings.whitelistNone': 'Not set',
+      'toast.sent': (n, s) => `Sent ${n} chars${s ? ' → ' + s : ''}`,
+      'confirm.clearBox': 'Clear input?',
+      'pwa.addToHome': 'Add to Home Screen', 'pwa.likeApp': 'Use SayIn like an app',
+      'pwa.httpsTitle': 'Switch to HTTPS for best experience',
+      'pwa.httpsDesc': 'HTTP keeps the address bar; HTTPS enables full-screen app mode',
+      'pwa.switch': 'Switch', 'pwa.install': 'Install', 'pwa.gotIt': 'Got it',
+      'pwa.iosDesc': 'Tap "Share" → "Add to Home Screen" for full-screen app mode',
+      'pwa.installDesc': 'Add to home screen for full-screen app mode',
+      'pwa.installTitle': 'Install SayIn',
+    },
+  };
+  function t(key, ...args) {
+    const v = (I18N[lang] && I18N[lang][key]) || (I18N.zh[key]) || key;
+    return typeof v === 'function' ? v(...args) : v;
+  }
+  function applyLang() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      const v = t(key);
+      if (v.includes('<')) el.innerHTML = v; else el.textContent = v;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      el.placeholder = t(el.dataset.i18nPh);
+    });
+  }
 
   // === PWA：安装提示 + Service Worker ===
   const installBanner = $('installBanner'), installBtn = $('installBtn');
@@ -357,17 +455,17 @@
       // HTTP 下 PWA 无法隐藏地址栏，引导用户切换到 HTTPS
       const httpsUrl = location.href.replace(/^http:/, 'https:').replace(/:\d+/, m =>
         m === ':8000' ? ':8443' : m);
-      installTitle.textContent = '切换到 HTTPS 以获得最佳体验';
-      installDesc.textContent = 'HTTP 下添加到主屏幕会保留地址栏，HTTPS 下可像 App 一样全屏使用';
-      installBtn.textContent = '切换';
+      installTitle.textContent = t('pwa.httpsTitle');
+      installDesc.textContent = t('pwa.httpsDesc');
+      installBtn.textContent = t('pwa.switch');
       installBtn.onclick = () => { location.href = httpsUrl; };
       installClose.onclick = () => { installBanner.classList.remove('show'); localStorage.setItem(DISMISS_KEY, '1'); };
       installBanner.classList.add('show');
     } else if (isIOS) {
       // iOS：没有 beforeinstallprompt，显示引导提示
-      installTitle.textContent = '添加到主屏幕';
-      installDesc.textContent = '点击底部「分享」→「添加到主屏幕」，即可像 App 一样全屏使用';
-      installBtn.textContent = '知道了';
+      installTitle.textContent = t('pwa.addToHome');
+      installDesc.textContent = t('pwa.iosDesc');
+      installBtn.textContent = t('pwa.gotIt');
       installBtn.onclick = () => { installBanner.classList.remove('show'); localStorage.setItem(DISMISS_KEY, '1'); };
       installClose.onclick = () => { installBanner.classList.remove('show'); localStorage.setItem(DISMISS_KEY, '1'); };
       installBanner.classList.add('show');
@@ -376,9 +474,9 @@
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        installTitle.textContent = '安装 SayIn';
-        installDesc.textContent = '添加到主屏幕，像 App 一样全屏使用';
-        installBtn.textContent = '安装';
+        installTitle.textContent = t('pwa.installTitle');
+        installDesc.textContent = t('pwa.installDesc');
+        installBtn.textContent = t('pwa.install');
         installBanner.classList.add('show');
       });
       installBtn.onclick = async () => {
@@ -447,23 +545,23 @@
   async function doConnect() {
     if (reconnecting) return;
     reconnecting = true;
-    setStatus('warn', '连接中…');
+    setStatus('warn', t('status.connecting'));
     try {
       ws = await connect();
       ws.onmessage = (ev) => {
         try {
           const m = JSON.parse(ev.data);
-          if (m.type === 'hello' && m.settings) { settings = m.settings; }
-          if (m.type === 'settings' && m.settings) { settings = m.settings; }
+          if (m.type === 'hello' && m.settings) { settings = m.settings; if (settings.language) { lang = settings.language; applyLang(); } }
+          if (m.type === 'settings' && m.settings) { settings = m.settings; if (settings.language) { lang = settings.language; applyLang(); } }
         } catch {}
       };
-      ws.onclose = () => { setStatus('', '已断开，重连中…'); sendBtn.disabled = true; ws = null;
+      ws.onclose = () => { setStatus('', t('status.disconnected')); sendBtn.disabled = true; ws = null;
         setTimeout(doConnect, 3000); };
       ws.onerror = () => {};
-      setStatus('ok', '已连接，可以发送');
+      setStatus('ok', t('status.connected'));
       sendBtn.disabled = !box.value.trim();
     } catch {
-      setStatus('err', '无法连接电脑'); sendBtn.disabled = true;
+      setStatus('err', t('status.failed')); sendBtn.disabled = true;
       setTimeout(doConnect, 5000);
     } finally { reconnecting = false; }
   }
@@ -489,7 +587,7 @@
   sendBtn.onclick = () => {
     const text = box.value.trim();
     if (!text) return;
-    if (!ws || ws.readyState !== 1) { toast('未连接电脑', 'error'); doConnect(); return; }
+    if (!ws || ws.readyState !== 1) { toast(t('send.notConnected'), 'error'); doConnect(); return; }
     const t0 = Date.now();
     ws.send(JSON.stringify({ type: 'text', text, ts: t0, targetApp: currentApp || '' }));
     const wait = setTimeout(() => markSent(text, t0), 2000);
@@ -502,8 +600,8 @@
     };
     ws.addEventListener('message', onMsg);
     sendBtn.classList.add('btn-sent');
-    sendBtnText.textContent = '已发送';
-    setTimeout(() => { sendBtn.classList.remove('btn-sent'); sendBtnText.textContent = '发送'; }, 1100);
+    sendBtnText.textContent = t('send.sent');
+    setTimeout(() => { sendBtn.classList.remove('btn-sent'); sendBtnText.textContent = t('send.sendBtn'); }, 1100);
   };
 
   function markSent(text, ts) {
@@ -513,10 +611,10 @@
     updateBadge();
     box.value = '';
     sendBtn.disabled = true;
-    toast(`已发送 ${text.length} 字${currentApp ? ' → ' + currentApp : ''}`, 'success');
+    toast(t('toast.sent', text.length, currentApp), 'success');
   }
 
-  clearBtn.onclick = () => { if (box.value && confirm('清空输入框？')) { box.value = ''; sendBtn.disabled = true; box.focus(); } };
+  clearBtn.onclick = () => { if (box.value && confirm(t('confirm.clearBox'))) { box.value = ''; sendBtn.disabled = true; box.focus(); } };
 
   function updateBadge() {
     if (recent.length) { recentBadge.textContent = recent.length; recentBadge.style.display = ''; }
@@ -532,16 +630,16 @@
     }
   }
   function renderRecent() {
-    recentCount.textContent = `最近发送 · ${recent.length} 条`;
+    recentCount.textContent = t('recent.countN', recent.length);
     recentClearBtn.style.display = recent.length ? '' : 'none';
     if (!recent.length) {
-      recentList.innerHTML = '<div class="recent-empty"><div class="recent-empty-icon">○</div><div class="recent-empty-text">还没有发送记录<br>去「发送」页写点什么吧</div></div>';
+      recentList.innerHTML = `<div class="recent-empty"><div class="recent-empty-icon">○</div><div class="recent-empty-text">${t('recent.empty')}</div></div>`;
       return;
     }
     recentList.innerHTML = recent.map(r => `
       <div class="recent-item" data-text="${esc(r.text)}">
         <div class="recent-item-top">
-          <span class="recent-target ${r.targetApp ? '' : 'no-app'}">${r.targetApp ? esc(r.targetApp) : '接收窗口'}</span>
+          <span class="recent-target ${r.targetApp ? '' : 'no-app'}">${r.targetApp ? esc(r.targetApp) : t('recent.badge.receiver')}</span>
           <span class="recent-time">${r.t}</span>
         </div>
         <div class="recent-text">${esc(r.text)}</div>
@@ -560,32 +658,32 @@
     box.setSelectionRange(box.value.length, box.value.length);
   });
   recentClearBtn.onclick = async () => {
-    if (!confirm('清空所有发送历史？此操作不可恢复。')) return;
+    if (!confirm(t('recent.confirmClear'))) return;
     await api('/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) });
     recent = []; updateBadge(); renderRecent();
-    toast('已清空历史', 'success');
+    toast(t('recent.cleared'), 'success');
   };
 
   // 应用选择
   targetBar.onclick = async () => {
     appSheet.classList.add('show');
-    appList.innerHTML = '<div class="app-empty">加载中…</div>';
+    appList.innerHTML = `<div class="app-empty">${t('app.loading')}</div>`;
     appSearch.value = '';
     const r = await api('/apps');
-    if (!r.ok) { appList.innerHTML = '<div class="app-empty">获取应用列表失败</div>'; return; }
+    if (!r.ok) { appList.innerHTML = `<div class="app-empty">${t('app.fetchFailed')}</div>`; return; }
     let apps = r.apps || [];
     let notRunning = r.notRunning || [];
-    let html = '<div class="app-row' + (!currentApp ? ' selected' : '') + '" data-name=""><div class="app-icon">◎</div><div class="app-info"><div class="app-name">仅发送到接收窗口</div><div class="app-status">不切换软件</div></div><div class="app-check">✓</div></div>';
+    let html = '<div class="app-row' + (!currentApp ? ' selected' : '') + '" data-name=""><div class="app-icon">◎</div><div class="app-info"><div class="app-name">' + t('app.receiverOnly') + '</div><div class="app-status">' + t('app.noSwitch') + '</div></div><div class="app-check">✓</div></div>';
     if (apps.length) {
-      html += '<div class="sheet-section-title">运行中</div>';
+      html += '<div class="sheet-section-title">' + t('app.runningHeader') + '</div>';
       html += apps.map(a => appRowHtml(a, true)).join('');
     }
     if (notRunning.length) {
-      html += '<div class="sheet-section-title">未运行</div>';
+      html += '<div class="sheet-section-title">' + t('app.notRunningHeader') + '</div>';
       html += notRunning.map(a => appRowHtml(a, false)).join('');
     }
     if (!apps.length && !notRunning.length) {
-      html = '<div class="app-empty">没有可用应用<br>请在电脑端「设置」里添加白名单</div>';
+      html = `<div class="app-empty">${t('app.empty')}</div>`;
     }
     appList.innerHTML = html;
     bindAppRows();
@@ -594,7 +692,7 @@
     return `<div class="app-row${currentApp === a ? ' selected' : ''}" data-name="${esc(a)}">
       <div class="app-icon">${appIconFor(a)}</div>
       <div class="app-info"><div class="app-name">${esc(a)}</div>
-      <div class="app-status${running ? ' running' : ''}">${running ? '运行中' : '未运行'}</div></div>
+      <div class="app-status${running ? ' running' : ''}">${running ? t('app.running') : t('app.notRunning')}</div></div>
       <div class="app-check">✓</div>
     </div>`;
   }
@@ -604,15 +702,15 @@
         const name = el.dataset.name;
         if (name) {
           const r = await api('/app/activate?name=' + encodeURIComponent(name));
-          if (!r.ok) { toast('切换失败', 'error'); return; }
+          if (!r.ok) { toast(t('app.switchFailed'), 'error'); return; }
           currentApp = name;
           targetName.textContent = name;
           targetIcon.textContent = appIconFor(name);
           targetBar.classList.add('has-app');
-          toast(`已切换到「${name}」`, 'success');
+          toast(t('app.switched', name), 'success');
         } else {
           currentApp = null;
-          targetName.textContent = '仅接收窗口';
+          targetName.textContent = t('send.receiverOnly');
           targetIcon.textContent = '◎';
           targetBar.classList.remove('has-app');
         }
@@ -643,13 +741,12 @@
     settingsList.innerHTML = `
       <div style="padding:14px">
         <div style="font-size:13px;color:var(--muted-foreground);line-height:1.6;margin-bottom:12px">
-          以下设置在<b>电脑端设置页</b>修改会自动同步。<br>
-          打开 <code style="background:var(--muted);padding:2px 6px;border-radius:4px;font-size:12px">localhost:8000/settings</code>
+          ${t('settings.hint')}
         </div>
-        ${settingRow('自动粘贴到光标', s.autoPaste ? '已开启' : '已关闭', s.autoPaste)}
-        ${settingRow('追加模式', s.appendMode ? '已开启' : '已关闭', s.appendMode)}
-        ${settingRow('粘贴后回车发送', s.enterAfterPaste ? '已开启' : '已关闭', s.enterAfterPaste)}
-        ${settingRow('可切换软件白名单', (s.appWhitelist && s.appWhitelist.length ? s.appWhitelist.length + ' 个' : '未设置'), false)}
+        ${settingRow(t('settings.autoPaste'), s.autoPaste ? t('settings.on') : t('settings.off'), s.autoPaste)}
+        ${settingRow(t('settings.appendMode'), s.appendMode ? t('settings.on') : t('settings.off'), s.appendMode)}
+        ${settingRow(t('settings.enterAfterPaste'), s.enterAfterPaste ? t('settings.on') : t('settings.off'), s.enterAfterPaste)}
+        ${settingRow(t('settings.whitelist'), (s.appWhitelist && s.appWhitelist.length ? t('settings.whitelistCount', s.appWhitelist.length) : t('settings.whitelistNone')), false)}
       </div>
     `;
   }
@@ -693,11 +790,12 @@
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  // 初始化：加载设置里的 lastTargetApp
+  // 初始化：加载设置里的 lastTargetApp 和语言
   (async () => {
     const r = await api('/settings');
     if (r.ok) {
       settings = r.settings;
+      if (settings.language) { lang = settings.language; applyLang(); }
       if (settings.lastTargetApp) {
         currentApp = settings.lastTargetApp;
         targetName.textContent = currentApp;
