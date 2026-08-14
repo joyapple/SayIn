@@ -1,6 +1,6 @@
 {
-  "name": "SayIt",
-  "short_name": "SayIt",
+  "name": "SayIn",
+  "short_name": "SayIn",
   "description": "手机写字板 → 电脑，用手机输入法写内容，点发送传到电脑",
   "start_url": "/",
   "scope": "/",

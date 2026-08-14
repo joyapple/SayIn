@@ -1,5 +1,5 @@
 /**
- * SayIt Service Worker - 离线缓存
+ * SayIn Service Worker - 离线缓存
  * @author  joyapple
  * @license Apache-2.0
  */

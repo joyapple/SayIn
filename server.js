@@ -1,5 +1,5 @@
 /**
- * SayIt · 手机写字板 → 电脑
+ * SayIn · 手机写字板 → 电脑
  * 功能：手机输入法打字/语音识别 → 点"发送"→ 文字推到所有 desk 客户端
  * 支持应用切换、自动粘贴、回车发送、设置持久化、历史持久化
  *
@@ -266,7 +266,7 @@ if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
   fs.writeFileSync(sanFile, `[v3]\nsubjectAltName=${san}\nextendedKeyUsage=serverAuth\n`);
   const { status } = spawnSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048',
     '-keyout', keyPath, '-out', certPath, '-days', '3650', '-nodes',
-    '-subj', '/CN=SayIt',
+    '-subj', '/CN=SayIn',
     '-extfile', sanFile, '-extensions', 'v3'], { stdio: 'inherit' });
   if (status !== 0) { console.error('[cert] 证书生成失败，请安装 openssl'); process.exit(1); }
   console.log('[cert] 证书已生成');
@@ -314,18 +314,18 @@ function serveCert(req, res) {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>PayloadContent</key><array><dict>
-    <key>PayloadCertificateFileName</key><string>SayIt.pem</string>
+    <key>PayloadCertificateFileName</key><string>SayIn.pem</string>
     <key>PayloadContent</key><data>
 ${certBase64}
     </data>
-    <key>PayloadDescription</key><string>信任 SayIt 的自签证书</string>
-    <key>PayloadDisplayName</key><string>SayIt</string>
+    <key>PayloadDescription</key><string>信任 SayIn 的自签证书</string>
+    <key>PayloadDisplayName</key><string>SayIn</string>
     <key>PayloadIdentifier</key><string>com.sayit.cert</string>
     <key>PayloadType</key><string>com.apple.security.root</string>
     <key>PayloadUUID</key><string>${uuid}</string>
     <key>PayloadVersion</key><integer>1</integer>
   </dict></array>
-  <key>PayloadDisplayName</key><string>SayIt 证书</string>
+  <key>PayloadDisplayName</key><string>SayIn 证书</string>
   <key>PayloadIdentifier</key><string>com.sayit</string>
   <key>PayloadType</key><string>Configuration</string>
   <key>PayloadUUID</key><string>${crypto.randomUUID()}</string>
@@ -553,7 +553,7 @@ function printStart() {
   const settingsLocal = `http://localhost:${HTTP_PORT}/settings`;
   console.log('');
   console.log('╔══════════════════════════════════════════════════════════════════╗');
-  console.log('║                       ✦  SayIt  已启动  ✦                       ║');
+  console.log('║                       ✦  SayIn  已启动  ✦                       ║');
   console.log('║                  手机写字板 → 电脑 · 优雅输入                    ║');
   console.log('╠══════════════════════════════════════════════════════════════════╣');
   console.log(`║  💻 电脑接收窗口：${deskLocal.padEnd(40)}║`);

@@ -1,5 +1,5 @@
 <!--
-  SayIt · 手机端页面
+  SayIn · 手机端页面
   输入 + 发送 + 历史 + 应用切换
   @author  joyapple
   @license Apache-2.0
@@ -12,12 +12,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="SayIt" />
+<meta name="apple-mobile-web-app-title" content="SayIn" />
 <meta name="theme-color" content="#09090b" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/app-icon.svg" />
 <link rel="icon" type="image/svg+xml" href="/app-icon.svg" />
-<title>SayIt</title>
+<title>SayIn</title>
 <style>
   /* shadcn/ui 风格设计 token */
   :root {
@@ -252,7 +252,7 @@
   <div class="topbar">
     <div class="brand">
       <div class="brand-logo">S</div>
-      <div class="brand-name">SayIt</div>
+      <div class="brand-name">SayIn</div>
     </div>
     <button class="icon-btn" id="settingsBtn" title="设置">⚙</button>
   </div>
@@ -261,7 +261,7 @@
     <div class="install-icon">S</div>
     <div class="install-text">
       <div class="install-title" id="installTitle">添加到主屏幕</div>
-      <div class="install-desc" id="installDesc">像 App 一样使用 SayIt</div>
+      <div class="install-desc" id="installDesc">像 App 一样使用 SayIn</div>
     </div>
     <button class="install-btn" id="installBtn">添加</button>
     <button class="install-close" id="installClose">×</button>
@@ -376,7 +376,7 @@
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        installTitle.textContent = '安装 SayIt';
+        installTitle.textContent = '安装 SayIn';
         installDesc.textContent = '添加到主屏幕，像 App 一样全屏使用';
         installBtn.textContent = '安装';
         installBanner.classList.add('show');
