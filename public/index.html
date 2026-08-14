@@ -1,0 +1,714 @@
+<!--
+  SayIt · 手机端页面
+  输入 + 发送 + 历史 + 应用切换
+  @author  joyapple
+  @license Apache-2.0
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SayIt" />
+<meta name="theme-color" content="#09090b" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/app-icon.svg" />
+<link rel="icon" type="image/svg+xml" href="/app-icon.svg" />
+<title>SayIt</title>
+<style>
+  /* shadcn/ui 风格设计 token */
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --card: #09090b;
+    --card-foreground: #fafafa;
+    --popover: #09090b;
+    --popover-foreground: #fafafa;
+    --primary: #fafafa;
+    --primary-foreground: #18181b;
+    --secondary: #27272a;
+    --secondary-foreground: #fafafa;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
+    --accent: #27272a;
+    --accent-foreground: #fafafa;
+    --destructive: #ef4444;
+    --destructive-foreground: #fafafa;
+    --border: #27272a;
+    --input: #27272a;
+    --ring: #d4d4d8;
+    --radius: 0.5rem;
+    --success: #22c55e;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --background: #ffffff;
+      --foreground: #09090b;
+      --card: #ffffff;
+      --card-foreground: #09090b;
+      --popover: #ffffff;
+      --popover-foreground: #09090b;
+      --primary: #18181b;
+      --primary-foreground: #fafafa;
+      --secondary: #f4f4f5;
+      --secondary-foreground: #18181b;
+      --muted: #f4f4f5;
+      --muted-foreground: #71717a;
+      --accent: #f4f4f5;
+      --accent-foreground: #18181b;
+      --border: #e4e4e7;
+      --input: #e4e4e7;
+      --ring: #a1a1aa;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--foreground); background: var(--background);
+    -webkit-font-smoothing: antialiased; font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  body { min-height: 100vh; overflow-x: hidden; }
+
+  .app { display: flex; flex-direction: column; min-height: 100vh;
+    padding: max(12px, env(safe-area-inset-top)) 16px 0; max-width: 540px; margin: 0 auto; }
+
+  /* 顶部品牌栏 */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo { width: 30px; height: 30px; border-radius: var(--radius);
+    background: var(--foreground); color: var(--background);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; }
+  .brand-name { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+  .icon-btn { width: 36px; height: 36px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--background); color: var(--foreground); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    transition: background .15s; -webkit-appearance: none; }
+  .icon-btn:hover { background: var(--accent); }
+  .icon-btn:active { background: var(--accent); }
+
+  /* 状态条 */
+  .status-pill { display: flex; align-items: center; gap: 8px; padding: 9px 13px;
+    border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px;
+    transition: border-color .2s; }
+  .status-pill.ok { border-color: rgba(34,197,94,.4); }
+  .status-pill.warn { border-color: rgba(234,179,8,.4); }
+  .status-pill.err { border-color: rgba(239,68,68,.4); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-foreground); flex-shrink: 0; }
+  .status-pill.ok .status-dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .status-pill.warn .status-dot { background: #eab308; box-shadow: 0 0 6px #eab308; }
+  .status-pill.err .status-dot { background: var(--destructive); box-shadow: 0 0 6px var(--destructive); }
+  .status-text { flex: 1; font-size: 13px; font-weight: 500; }
+  .status-pill .reconnect { font-size: 12px; color: var(--foreground); background: none; border: none;
+    cursor: pointer; padding: 3px 8px; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* Tab 栏 */
+  .tabbar { display: flex; gap: 4px; padding: 4px; background: var(--muted);
+    border: 1px solid var(--border); border-radius: calc(var(--radius) + 2px); margin-bottom: 14px; }
+  .tab { flex: 1; padding: 7px; border: none; background: none; color: var(--muted-foreground);
+    font-size: 13px; font-weight: 500; cursor: pointer; border-radius: calc(var(--radius) - 1px);
+    transition: all .15s; -webkit-appearance: none; display: flex; align-items: center;
+    justify-content: center; gap: 6px; font-family: inherit; }
+  .tab.active { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .tab:active { transform: scale(.97); }
+  .tab .badge { background: var(--primary); color: var(--primary-foreground); font-size: 10px;
+    padding: 1px 6px; border-radius: 9999px; font-weight: 600; min-width: 16px; text-align: center; }
+
+  /* 页面 */
+  .page { display: none; flex: 1; flex-direction: column; }
+  .page.active { display: flex; animation: fadeIn .15s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* 发送页 */
+  .target-bar { display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    background: var(--muted); border-radius: var(--radius); margin-bottom: 12px;
+    cursor: pointer; transition: background .15s; border: 1px solid transparent; }
+  .target-bar:hover { background: var(--accent); }
+  .target-bar:active { background: var(--accent); }
+  .target-bar.has-app { background: var(--accent); }
+  .target-icon { width: 30px; height: 30px; border-radius: calc(var(--radius) - 1px); background: var(--background);
+    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .target-info { flex: 1; min-width: 0; }
+  .target-label { font-size: 11px; color: var(--muted-foreground); font-weight: 500; }
+  .target-name { font-size: 14px; font-weight: 500; margin-top: 1px; }
+  .target-arrow { color: var(--muted-foreground); font-size: 14px; }
+
+  .composer { display: flex; flex-direction: column; gap: 10px; }
+  .editor { width: 100%; min-height: 140px; max-height: 50vh; resize: none; border-radius: var(--radius);
+    padding: 14px; font-size: 16px; line-height: 1.6; font-family: inherit;
+    border: 1px solid var(--input); background: var(--background); color: var(--foreground);
+    outline: none; transition: border-color .15s, box-shadow .15s; -webkit-appearance: none; appearance: none; }
+  .editor:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }
+  .editor::placeholder { color: var(--muted-foreground); }
+
+  .composer-actions { display: flex; gap: 8px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .btn { border-radius: var(--radius); cursor: pointer; font-size: 14px; font-weight: 500;
+    transition: background .15s, opacity .15s; -webkit-appearance: none; font-family: inherit;
+    padding: 12px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { flex: 1; background: var(--primary); color: var(--primary-foreground); border: 1px solid var(--primary); }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:disabled { opacity: .5; }
+  .btn-secondary { background: var(--secondary); color: var(--secondary-foreground); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--accent); }
+  .btn-ghost { background: var(--background); color: var(--foreground); border: 1px solid var(--border);
+    flex: 0 0 auto; }
+  .btn-ghost:hover { background: var(--accent); }
+  .btn-sent { background: var(--success); color: #fff; border-color: var(--success); }
+
+  /* 最近发送 */
+  .recent-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .recent-title { font-size: 13px; color: var(--muted-foreground); font-weight: 500; }
+  .recent-clear { font-size: 12px; color: var(--destructive); background: none; border: none; cursor: pointer;
+    padding: 4px 8px; font-weight: 500; font-family: inherit; }
+  .recent-list { flex: 1; overflow-y: auto; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .recent-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; margin-bottom: 8px; transition: background .15s; cursor: pointer; }
+  .recent-item:hover { background: var(--accent); }
+  .recent-item:active { background: var(--accent); }
+  .recent-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .recent-target { display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    padding: 2px 8px; border-radius: 9999px; background: var(--secondary);
+    color: var(--secondary-foreground); font-weight: 500; border: 1px solid var(--border); }
+  .recent-target.no-app { background: var(--muted); color: var(--muted-foreground); }
+  .recent-time { font-size: 11px; color: var(--muted-foreground); }
+  .recent-text { font-size: 14px; line-height: 1.5; color: var(--foreground); white-space: pre-wrap; word-break: break-word;
+    max-height: 5em; overflow: hidden; }
+  .recent-empty { text-align: center; padding: 60px 20px; color: var(--muted-foreground); }
+  .recent-empty-icon { font-size: 36px; opacity: .4; margin-bottom: 10px; }
+  .recent-empty-text { font-size: 14px; }
+
+  /* Sheet (Drawer) */
+  .sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100;
+    display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
+  .sheet-mask.show { display: flex; animation: fadeIn .15s; }
+  .sheet { background: var(--background); border-radius: 16px 16px 0 0;
+    width: 100%; max-width: 540px; max-height: 80vh; display: flex; flex-direction: column;
+    border-top: 1px solid var(--border); overflow: hidden; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-handle { width: 32px; height: 4px; background: var(--border); border-radius: 2px; margin: 8px auto 0; }
+  .sheet-header { padding: 12px 16px 8px; display: flex; align-items: center; justify-content: space-between; }
+  .sheet-title { font-size: 15px; font-weight: 600; }
+  .sheet-close { width: 28px; height: 28px; border-radius: var(--radius); border: none; background: var(--secondary);
+    color: var(--secondary-foreground); font-size: 13px; cursor: pointer; -webkit-appearance: none; }
+  .sheet-close:hover { background: var(--accent); }
+  .sheet-search { padding: 4px 16px 10px; }
+  .sheet-search input { width: 100%; padding: 9px 12px; border-radius: var(--radius);
+    background: var(--background); border: 1px solid var(--input); color: var(--foreground);
+    font-size: 14px; outline: none; -webkit-appearance: none; font-family: inherit; }
+  .sheet-search input:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }
+  .sheet-list { overflow-y: auto; padding: 0 8px 16px; -webkit-overflow-scrolling: touch; }
+  .app-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    border-radius: var(--radius); cursor: pointer; transition: background .1s; }
+  .app-row:hover { background: var(--accent); }
+  .app-row:active { background: var(--accent); }
+  .app-row.selected { background: var(--accent); }
+  .app-icon { width: 32px; height: 32px; border-radius: calc(var(--radius) - 1px); background: var(--muted);
+    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .app-info { flex: 1; min-width: 0; }
+  .app-name { font-size: 14px; font-weight: 500; }
+  .app-status { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; }
+  .app-status.running { color: var(--success); }
+  .app-check { color: var(--foreground); font-size: 15px; opacity: 0; font-weight: 600; }
+  .app-row.selected .app-check { opacity: 1; }
+  .app-empty { padding: 50px 20px; text-align: center; color: var(--muted-foreground); font-size: 14px; line-height: 1.6; }
+  .sheet-section-title { font-size: 11px; color: var(--muted-foreground); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .03em; padding: 10px 12px 4px; }
+
+  /* Toast */
+  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px); background: var(--foreground); color: var(--background);
+    padding: 10px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+    opacity: 0; pointer-events: none; transition: all .2s ease;
+    z-index: 200; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); color: #fff; }
+  .toast.error { background: var(--destructive); color: #fff; }
+
+  /* PWA 安装提示 */
+  .install-banner { display: none; align-items: center; gap: 10px; padding: 10px 14px;
+    background: var(--secondary); border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 12px; animation: fadeIn .3s ease; }
+  .install-banner.show { display: flex; }
+  .install-icon { width: 32px; height: 32px; border-radius: calc(var(--radius) - 1px);
+    background: var(--foreground); color: var(--background); display: flex;
+    align-items: center; justify-content: center; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+  .install-text { flex: 1; min-width: 0; }
+  .install-title { font-size: 13px; font-weight: 600; }
+  .install-desc { font-size: 11px; color: var(--muted-foreground); margin-top: 1px; line-height: 1.4; }
+  .install-btn { padding: 7px 14px; border-radius: var(--radius); background: var(--primary);
+    color: var(--primary-foreground); border: none; font-size: 12px; font-weight: 600;
+    cursor: pointer; flex-shrink: 0; font-family: inherit; -webkit-appearance: none; }
+  .install-btn:active { transform: scale(.97); }
+  .install-close { background: none; border: none; color: var(--muted-foreground); cursor: pointer;
+    font-size: 16px; padding: 2px; line-height: 1; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-logo">S</div>
+      <div class="brand-name">SayIt</div>
+    </div>
+    <button class="icon-btn" id="settingsBtn" title="设置">⚙</button>
+  </div>
+
+  <div class="install-banner" id="installBanner">
+    <div class="install-icon">S</div>
+    <div class="install-text">
+      <div class="install-title" id="installTitle">添加到主屏幕</div>
+      <div class="install-desc" id="installDesc">像 App 一样使用 SayIt</div>
+    </div>
+    <button class="install-btn" id="installBtn">添加</button>
+    <button class="install-close" id="installClose">×</button>
+  </div>
+
+  <div class="status-pill warn" id="statusPill">
+    <span class="status-dot"></span>
+    <span class="status-text" id="statusText">连接中…</span>
+    <button class="reconnect" id="reconnectBtn">重连</button>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab active" data-tab="send">发送</button>
+    <button class="tab" data-tab="recent">最近 <span class="badge" id="recentBadge" style="display:none">0</span></button>
+  </div>
+
+  <div class="page active" id="page-send">
+    <div class="target-bar" id="targetBar">
+      <div class="target-icon" id="targetIcon">◎</div>
+      <div class="target-info">
+        <div class="target-label">发送到</div>
+        <div class="target-name" id="targetName">仅接收窗口</div>
+      </div>
+      <span class="target-arrow">›</span>
+    </div>
+
+    <div class="composer">
+      <textarea class="editor" id="box" placeholder="点这里输入…&#10;语音 / 键盘均可"></textarea>
+      <div class="composer-actions">
+        <button class="btn btn-primary" id="sendBtn" disabled>
+          <span id="sendBtnText">发送</span>
+        </button>
+        <button class="btn btn-ghost" id="clearBtn">清空</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-recent">
+    <div class="recent-header">
+      <span class="recent-title" id="recentCount">最近发送</span>
+      <button class="recent-clear" id="recentClearBtn" style="display:none">清空历史</button>
+    </div>
+    <div class="recent-list" id="recentList"></div>
+  </div>
+</div>
+
+<div class="sheet-mask" id="appSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">选择目标软件</div>
+      <button class="sheet-close" id="sheetClose">✕</button>
+    </div>
+    <div class="sheet-search">
+      <input id="appSearch" placeholder="搜索应用…" />
+    </div>
+    <div class="sheet-list" id="appList"></div>
+  </div>
+</div>
+
+<div class="sheet-mask" id="settingsSheet">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">设置</div>
+      <button class="sheet-close" id="settingsClose">✕</button>
+    </div>
+    <div class="sheet-list" id="settingsList" style="padding-bottom:24px"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  // === PWA：安装提示 + Service Worker ===
+  const installBanner = $('installBanner'), installBtn = $('installBtn');
+  const installClose = $('installClose'), installTitle = $('installTitle'), installDesc = $('installDesc');
+  let deferredPrompt = null;
+  const DISMISS_KEY = 'sayit_install_dismissed';
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+  const dismissed = sessionStorage.getItem(DISMISS_KEY) || localStorage.getItem(DISMISS_KEY);
+
+  // 已安装 / 已关闭 → 不显示
+  if (!isStandalone && !dismissed) {
+    if (!isHTTPS) {
+      // HTTP 下 PWA 无法隐藏地址栏，引导用户切换到 HTTPS
+      const httpsUrl = location.href.replace(/^http:/, 'https:').replace(/:\d+/, m =>
+        m === ':8000' ? ':8443' : m);
+      installTitle.textContent = '切换到 HTTPS 以获得最佳体验';
+      installDesc.textContent = 'HTTP 下添加到主屏幕会保留地址栏，HTTPS 下可像 App 一样全屏使用';
+      installBtn.textContent = '切换';
+      installBtn.onclick = () => { location.href = httpsUrl; };
+      installClose.onclick = () => { installBanner.classList.remove('show'); localStorage.setItem(DISMISS_KEY, '1'); };
+      installBanner.classList.add('show');
+    } else if (isIOS) {
+      // iOS：没有 beforeinstallprompt，显示引导提示
+      installTitle.textContent = '添加到主屏幕';
+      installDesc.textContent = '点击底部「分享」→「添加到主屏幕」，即可像 App 一样全屏使用';
+      installBtn.textContent = '知道了';
+      installBtn.onclick = () => { installBanner.classList.remove('show'); localStorage.setItem(DISMISS_KEY, '1'); };
+      installClose.onclick = () => { installBanner.classList.remove('show'); localStorage.setItem(DISMISS_KEY, '1'); };
+      installBanner.classList.add('show');
+    } else {
+      // Android Chrome/Edge：监听 beforeinstallprompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installTitle.textContent = '安装 SayIt';
+        installDesc.textContent = '添加到主屏幕，像 App 一样全屏使用';
+        installBtn.textContent = '安装';
+        installBanner.classList.add('show');
+      });
+      installBtn.onclick = async () => {
+        if (deferredPrompt) {
+          installBanner.classList.remove('show');
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') localStorage.setItem(DISMISS_KEY, '1');
+          deferredPrompt = null;
+        }
+      };
+      installClose.onclick = () => { installBanner.classList.remove('show'); localStorage.setItem(DISMISS_KEY, '1'); };
+    }
+  }
+
+  // 已安装后隐藏 banner
+  if (isStandalone) installBanner.classList.remove('show');
+
+  // 注册 Service Worker（仅 HTTPS 或 localhost）
+  if ('serviceWorker' in navigator && isHTTPS) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+
+  const box = $('box'), sendBtn = $('sendBtn'), sendBtnText = $('sendBtnText'), clearBtn = $('clearBtn');
+  const statusPill = $('statusPill'), statusText = $('statusText');
+  const targetBar = $('targetBar'), targetIcon = $('targetIcon'), targetName = $('targetName');
+  const appSheet = $('appSheet'), appList = $('appList'), appSearch = $('appSearch');
+  const settingsSheet = $('settingsSheet'), settingsList = $('settingsList');
+  const recentList = $('recentList'), recentBadge = $('recentBadge'), recentCount = $('recentCount');
+  const recentClearBtn = $('recentClearBtn');
+  let ws = null, currentApp = null, recent = [], settings = {};
+
+  function toast(msg, type = '', ms = 2200) {
+    const t = $('toast'); t.textContent = msg; t.className = 'toast show ' + type;
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast ' + type, ms);
+  }
+  function setStatus(state, text) {
+    statusPill.className = 'status-pill ' + (state || '');
+    statusText.textContent = text;
+  }
+
+  async function api(path, opts = {}) {
+    const url = (location.protocol === 'https:' ? 'https:' : 'http:') + '//' + location.host + path;
+    try {
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' }, ...opts });
+      return await r.json();
+    } catch { return { ok: false }; }
+  }
+
+  // WebSocket
+  function tryWS(url, to = 4000) {
+    return new Promise((rs, rj) => {
+      const s = new WebSocket(url);
+      const timer = setTimeout(() => { try { s.close(); } catch {} rj(new Error('timeout')); }, to);
+      s.onopen = () => { clearTimeout(timer); rs(s); };
+      s.onerror = () => { clearTimeout(timer); rj(new Error('onerror')); };
+    });
+  }
+  async function connect() {
+    const host = location.hostname;
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const port = location.port || (location.protocol === 'https:' ? '443' : '80');
+    return await tryWS(`${proto}://${host}:${port}/text`);
+  }
+  let reconnecting = false;
+  async function doConnect() {
+    if (reconnecting) return;
+    reconnecting = true;
+    setStatus('warn', '连接中…');
+    try {
+      ws = await connect();
+      ws.onmessage = (ev) => {
+        try {
+          const m = JSON.parse(ev.data);
+          if (m.type === 'hello' && m.settings) { settings = m.settings; }
+          if (m.type === 'settings' && m.settings) { settings = m.settings; }
+        } catch {}
+      };
+      ws.onclose = () => { setStatus('', '已断开，重连中…'); sendBtn.disabled = true; ws = null;
+        setTimeout(doConnect, 3000); };
+      ws.onerror = () => {};
+      setStatus('ok', '已连接，可以发送');
+      sendBtn.disabled = !box.value.trim();
+    } catch {
+      setStatus('err', '无法连接电脑'); sendBtn.disabled = true;
+      setTimeout(doConnect, 5000);
+    } finally { reconnecting = false; }
+  }
+  $('reconnectBtn').onclick = () => { if (ws) try { ws.close(); } catch {}; doConnect(); };
+
+  // Tab 切换
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      $('page-' + tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab === 'recent') loadRecent();
+    };
+  });
+
+  // 输入框
+  box.addEventListener('input', () => {
+    sendBtn.disabled = !(box.value.trim() && ws && ws.readyState === 1);
+  });
+
+  // 发送
+  sendBtn.onclick = () => {
+    const text = box.value.trim();
+    if (!text) return;
+    if (!ws || ws.readyState !== 1) { toast('未连接电脑', 'error'); doConnect(); return; }
+    const t0 = Date.now();
+    ws.send(JSON.stringify({ type: 'text', text, ts: t0, targetApp: currentApp || '' }));
+    const wait = setTimeout(() => markSent(text, t0), 2000);
+    const onMsg = (ev) => {
+      try { const m = JSON.parse(ev.data);
+        if (m.type === 'text_ok' && m.ts === t0) {
+          clearTimeout(wait); ws.removeEventListener('message', onMsg); markSent(text, t0);
+        }
+      } catch {}
+    };
+    ws.addEventListener('message', onMsg);
+    sendBtn.classList.add('btn-sent');
+    sendBtnText.textContent = '已发送';
+    setTimeout(() => { sendBtn.classList.remove('btn-sent'); sendBtnText.textContent = '发送'; }, 1100);
+  };
+
+  function markSent(text, ts) {
+    const t = new Date(ts).toLocaleTimeString('zh-CN', { hour12: false });
+    recent.unshift({ text, t, targetApp: currentApp || '' });
+    if (recent.length > 50) recent.pop();
+    updateBadge();
+    box.value = '';
+    sendBtn.disabled = true;
+    toast(`已发送 ${text.length} 字${currentApp ? ' → ' + currentApp : ''}`, 'success');
+  }
+
+  clearBtn.onclick = () => { if (box.value && confirm('清空输入框？')) { box.value = ''; sendBtn.disabled = true; box.focus(); } };
+
+  function updateBadge() {
+    if (recent.length) { recentBadge.textContent = recent.length; recentBadge.style.display = ''; }
+    else recentBadge.style.display = 'none';
+  }
+
+  async function loadRecent() {
+    const r = await api('/history');
+    if (r.ok && Array.isArray(r.history)) {
+      recent = r.history.slice(0, 50).map(h => ({ text: h.text, t: h.t, targetApp: h.targetApp || '' }));
+      updateBadge();
+      renderRecent();
+    }
+  }
+  function renderRecent() {
+    recentCount.textContent = `最近发送 · ${recent.length} 条`;
+    recentClearBtn.style.display = recent.length ? '' : 'none';
+    if (!recent.length) {
+      recentList.innerHTML = '<div class="recent-empty"><div class="recent-empty-icon">○</div><div class="recent-empty-text">还没有发送记录<br>去「发送」页写点什么吧</div></div>';
+      return;
+    }
+    recentList.innerHTML = recent.map(r => `
+      <div class="recent-item" data-text="${esc(r.text)}">
+        <div class="recent-item-top">
+          <span class="recent-target ${r.targetApp ? '' : 'no-app'}">${r.targetApp ? esc(r.targetApp) : '接收窗口'}</span>
+          <span class="recent-time">${r.t}</span>
+        </div>
+        <div class="recent-text">${esc(r.text)}</div>
+      </div>
+    `).join('');
+  }
+  recentList.addEventListener('click', e => {
+    const it = e.target.closest('.recent-item'); if (!it) return;
+    box.value = it.dataset.text;
+    sendBtn.disabled = !(box.value.trim() && ws && ws.readyState === 1);
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-tab="send"]').classList.add('active');
+    $('page-send').classList.add('active');
+    box.focus();
+    box.setSelectionRange(box.value.length, box.value.length);
+  });
+  recentClearBtn.onclick = async () => {
+    if (!confirm('清空所有发送历史？此操作不可恢复。')) return;
+    await api('/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) });
+    recent = []; updateBadge(); renderRecent();
+    toast('已清空历史', 'success');
+  };
+
+  // 应用选择
+  targetBar.onclick = async () => {
+    appSheet.classList.add('show');
+    appList.innerHTML = '<div class="app-empty">加载中…</div>';
+    appSearch.value = '';
+    const r = await api('/apps');
+    if (!r.ok) { appList.innerHTML = '<div class="app-empty">获取应用列表失败</div>'; return; }
+    let apps = r.apps || [];
+    let notRunning = r.notRunning || [];
+    let html = '<div class="app-row' + (!currentApp ? ' selected' : '') + '" data-name=""><div class="app-icon">◎</div><div class="app-info"><div class="app-name">仅发送到接收窗口</div><div class="app-status">不切换软件</div></div><div class="app-check">✓</div></div>';
+    if (apps.length) {
+      html += '<div class="sheet-section-title">运行中</div>';
+      html += apps.map(a => appRowHtml(a, true)).join('');
+    }
+    if (notRunning.length) {
+      html += '<div class="sheet-section-title">未运行</div>';
+      html += notRunning.map(a => appRowHtml(a, false)).join('');
+    }
+    if (!apps.length && !notRunning.length) {
+      html = '<div class="app-empty">没有可用应用<br>请在电脑端「设置」里添加白名单</div>';
+    }
+    appList.innerHTML = html;
+    bindAppRows();
+  };
+  function appRowHtml(a, running) {
+    return `<div class="app-row${currentApp === a ? ' selected' : ''}" data-name="${esc(a)}">
+      <div class="app-icon">${appIconFor(a)}</div>
+      <div class="app-info"><div class="app-name">${esc(a)}</div>
+      <div class="app-status${running ? ' running' : ''}">${running ? '运行中' : '未运行'}</div></div>
+      <div class="app-check">✓</div>
+    </div>`;
+  }
+  function bindAppRows() {
+    appList.querySelectorAll('.app-row').forEach(el => {
+      el.onclick = async () => {
+        const name = el.dataset.name;
+        if (name) {
+          const r = await api('/app/activate?name=' + encodeURIComponent(name));
+          if (!r.ok) { toast('切换失败', 'error'); return; }
+          currentApp = name;
+          targetName.textContent = name;
+          targetIcon.textContent = appIconFor(name);
+          targetBar.classList.add('has-app');
+          toast(`已切换到「${name}」`, 'success');
+        } else {
+          currentApp = null;
+          targetName.textContent = '仅接收窗口';
+          targetIcon.textContent = '◎';
+          targetBar.classList.remove('has-app');
+        }
+        appSheet.classList.remove('show');
+      };
+    });
+  }
+  $('sheetClose').onclick = () => appSheet.classList.remove('show');
+  appSheet.onclick = e => { if (e.target === appSheet) appSheet.classList.remove('show'); };
+  appSearch.oninput = () => {
+    const kw = appSearch.value.toLowerCase();
+    appList.querySelectorAll('.app-row').forEach(el => {
+      el.style.display = el.textContent.toLowerCase().includes(kw) ? '' : 'none';
+    });
+  };
+
+  // 设置面板
+  $('settingsBtn').onclick = async () => {
+    settingsSheet.classList.add('show');
+    const r = await api('/settings');
+    if (r.ok) settings = r.settings;
+    renderSettings();
+  };
+  $('settingsClose').onclick = () => settingsSheet.classList.remove('show');
+  settingsSheet.onclick = e => { if (e.target === settingsSheet) settingsSheet.classList.remove('show'); };
+  function renderSettings() {
+    const s = settings || {};
+    settingsList.innerHTML = `
+      <div style="padding:14px">
+        <div style="font-size:13px;color:var(--muted-foreground);line-height:1.6;margin-bottom:12px">
+          以下设置在<b>电脑端设置页</b>修改会自动同步。<br>
+          打开 <code style="background:var(--muted);padding:2px 6px;border-radius:4px;font-size:12px">localhost:8000/settings</code>
+        </div>
+        ${settingRow('自动粘贴到光标', s.autoPaste ? '已开启' : '已关闭', s.autoPaste)}
+        ${settingRow('追加模式', s.appendMode ? '已开启' : '已关闭', s.appendMode)}
+        ${settingRow('粘贴后回车发送', s.enterAfterPaste ? '已开启' : '已关闭', s.enterAfterPaste)}
+        ${settingRow('可切换软件白名单', (s.appWhitelist && s.appWhitelist.length ? s.appWhitelist.length + ' 个' : '未设置'), false)}
+      </div>
+    `;
+  }
+  function settingRow(label, value, on) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px">
+      <div style="font-size:14px;font-weight:500">${label}</div>
+      <div style="font-size:13px;color:${on ? 'var(--success)' : 'var(--muted-foreground)'};font-weight:500">${value}</div>
+    </div>`;
+  }
+
+  function appIconFor(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('wechat') || n.includes('微信')) return '💬';
+    if (n.includes('dingtalk') || n.includes('钉钉')) return '📞';
+    if (n.includes('safari')) return '🧭';
+    if (n.includes('chrome')) return '🌐';
+    if (n.includes('firefox')) return '🦊';
+    if (n.includes('edge')) return '🌊';
+    if (n.includes('word')) return '📝';
+    if (n.includes('pages')) return '📄';
+    if (n.includes('excel')) return '📊';
+    if (n.includes('numbers')) return '🔢';
+    if (n.includes('keynote')) return '📽';
+    if (n.includes('powerpoint') || n.includes('ppt')) return '📽';
+    if (n.includes('notes') || n.includes('备忘录')) return '🗒';
+    if (n.includes('notion')) return '📓';
+    if (n.includes('terminal') || n.includes('终端')) return '💻';
+    if (n.includes('code') || n.includes('vscode') || n.includes('cursor') || n.includes('trae')) return '⌨';
+    if (n.includes('telegram')) return '✈';
+    if (n.includes('messages') || n.includes('信息')) return '💬';
+    if (n.includes('mail') || n.includes('邮件')) return '✉';
+    if (n.includes('music') || n.includes('音乐')) return '♪';
+    if (n.includes('slack')) return '💼';
+    if (n.includes('discord')) return '🎮';
+    if (n.includes('figma')) return '🎨';
+    if (n.includes('finder') || n.includes('访达')) return '📁';
+    if (n.includes('preview') || n.includes('预览')) return '👁';
+    if (n.includes('settings') || n.includes('设置')) return '⚙';
+    return '▣';
+  }
+
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // 初始化：加载设置里的 lastTargetApp
+  (async () => {
+    const r = await api('/settings');
+    if (r.ok) {
+      settings = r.settings;
+      if (settings.lastTargetApp) {
+        currentApp = settings.lastTargetApp;
+        targetName.textContent = currentApp;
+        targetIcon.textContent = appIconFor(currentApp);
+        targetBar.classList.add('has-app');
+      }
+    }
+  })();
+
+  doConnect();
+})();
+</script>
+</body>
+</html>

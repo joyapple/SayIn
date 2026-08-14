@@ -1,0 +1,369 @@
+<!--
+  SayIt · 电脑端接收窗口
+  接收手机发送的文字并显示
+  @author  joyapple
+  @license Apache-2.0
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SayIt · 接收窗口</title>
+<style>
+  :root {
+    --background: #09090b; --foreground: #fafafa;
+    --card: #09090b; --card-foreground: #fafafa;
+    --primary: #fafafa; --primary-foreground: #18181b;
+    --secondary: #27272a; --secondary-foreground: #fafafa;
+    --muted: #27272a; --muted-foreground: #a1a1aa;
+    --accent: #27272a; --accent-foreground: #fafafa;
+    --destructive: #ef4444;
+    --border: #27272a; --input: #27272a; --ring: #d4d4d8;
+    --radius: 0.5rem; --success: #22c55e;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --background: #ffffff; --foreground: #09090b;
+      --card: #ffffff; --card-foreground: #09090b;
+      --primary: #18181b; --primary-foreground: #fafafa;
+      --secondary: #f4f4f5; --secondary-foreground: #18181b;
+      --muted: #f4f4f5; --muted-foreground: #71717a;
+      --accent: #f4f4f5; --accent-foreground: #18181b;
+      --border: #e4e4e7; --input: #e4e4e7; --ring: #a1a1aa;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--foreground); background: var(--background); -webkit-font-smoothing: antialiased; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid var(--border);
+    background: var(--background); position: sticky; top: 0; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo { width: 30px; height: 30px; border-radius: var(--radius);
+    background: var(--foreground); color: var(--background);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; }
+  .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .brand-sub { font-size: 11px; color: var(--muted-foreground); font-weight: 500; margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .status-chip { display: flex; align-items: center; gap: 6px; padding: 5px 10px;
+    background: var(--secondary); border: 1px solid var(--border); border-radius: 9999px;
+    font-size: 12px; font-weight: 500; }
+  .status-chip.ok { color: var(--success); }
+  .status-chip.warn { color: #eab308; }
+  .status-chip.err { color: var(--destructive); }
+  .status-chip .d { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .nav-link { padding: 6px 12px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+    color: var(--muted-foreground); text-decoration: none; transition: all .15s;
+    border: 1px solid transparent; cursor: pointer; background: none; font-family: inherit; }
+  .nav-link:hover { background: var(--accent); color: var(--foreground); }
+
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+  .alert { background: var(--secondary); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 16px; font-size: 13px; color: var(--muted-foreground);
+    line-height: 1.6; }
+  .alert b { color: var(--foreground); }
+  .alert code { background: var(--muted); padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    border: 1px solid var(--border); color: var(--foreground); }
+
+  .card { background: var(--card); border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 2px); overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 14px; font-weight: 600; margin: 0; }
+  .card-description { font-size: 12px; color: var(--muted-foreground); margin-top: 2px; }
+  .card-content { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+  .editor { width: 100%; min-height: 220px; max-height: 45vh; overflow-y: auto;
+    background: var(--background); border: 1px solid var(--input); border-radius: var(--radius);
+    padding: 14px 16px; font-size: 15px; line-height: 1.7; font-family: inherit;
+    color: var(--foreground); outline: none; resize: vertical; white-space: pre-wrap; word-break: break-word;
+    transition: border-color .15s, box-shadow .15s; }
+  .editor:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }
+  .editor:empty::before { content: "手机发送的文字会自动出现在这里"; color: var(--muted-foreground); }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn { padding: 8px 14px; border-radius: var(--radius); cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: background .15s, opacity .15s; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 5px; border: 1px solid transparent; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:disabled { opacity: .5; }
+  .btn-secondary { background: var(--secondary); color: var(--secondary-foreground); border-color: var(--border); }
+  .btn-secondary:hover { background: var(--accent); }
+  .btn-outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+  .btn-outline:hover { background: var(--accent); }
+  .btn-ghost { background: none; color: var(--foreground); border-color: transparent; }
+  .btn-ghost:hover { background: var(--accent); }
+  .btn-done { background: var(--success); color: #fff; border-color: var(--success); }
+  .mode-text { font-size: 12px; color: var(--muted-foreground); margin-left: auto; }
+
+  .history-list { max-height: 38vh; overflow-y: auto; }
+  .history-list:empty::before { content: "收到的文字会显示在这里"; color: var(--muted-foreground);
+    display: block; text-align: center; padding: 36px 20px; font-size: 13px; }
+  .h-item { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 14px;
+    align-items: flex-start; transition: background .15s; }
+  .h-item:last-child { border-bottom: none; }
+  .h-item.latest { background: var(--accent); }
+  .h-item:hover { background: var(--accent); }
+  .h-body { flex: 1; min-width: 0; }
+  .h-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .h-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    padding: 1px 8px; border-radius: 9999px; background: var(--secondary);
+    color: var(--secondary-foreground); font-weight: 500; border: 1px solid var(--border); }
+  .h-badge.no-app { background: var(--muted); color: var(--muted-foreground); }
+  .h-time { font-size: 11px; color: var(--muted-foreground); }
+  .h-from { font-size: 11px; color: var(--muted-foreground); }
+  .h-text { font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+  .h-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .mini-btn { padding: 4px 9px; border-radius: calc(var(--radius) - 1px); border: 1px solid var(--border);
+    background: var(--background); color: var(--muted-foreground); cursor: pointer;
+    font-size: 11px; font-family: inherit; transition: all .1s; }
+  .mini-btn:hover { color: var(--foreground); border-color: var(--ring); }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: var(--foreground); color: var(--background); padding: 10px 16px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: all .2s ease; z-index: 99; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); color: #fff; }
+  .toast.error { background: var(--destructive); color: #fff; }
+
+  .flash { animation: flash .6s ease; }
+  @keyframes flash { 0% { background: var(--accent); } 100% { background: var(--background); } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">S</div>
+    <div>
+      <div class="brand-name">SayIt</div>
+      <div class="brand-sub">接收窗口</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-chip warn" id="statusChip">
+      <span class="d"></span><span id="statusText">连接中…</span>
+    </div>
+    <a class="nav-link" href="/settings">设置</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="alert">
+    <b>使用方式</b>：手机打开 <code>http://<span id="ip">—</span>:8000</code> → 用输入法写内容 → 点「发送」→ 文字出现在下面。收到后可直接 <b>⌘V</b> 粘贴，或在「<a href="/settings" style="color:var(--foreground);text-decoration:underline">设置</a>」开启自动粘贴。
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">当前内容</div>
+        <div class="card-description" id="count">0 字</div>
+      </div>
+    </div>
+    <div class="card-content">
+      <textarea class="editor" id="box" placeholder="手机发送的文字会自动出现在这里"></textarea>
+      <div class="actions">
+        <button class="btn btn-primary" id="copyBtn" disabled>复制全部</button>
+        <button class="btn btn-outline" id="pasteNowBtn">立即粘贴 (⌘V)</button>
+        <button class="btn btn-ghost" id="clearBtn">清空</button>
+        <span class="mode-text" id="modeIndicator">追加模式 · 自动粘贴：关</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">历史记录</div>
+        <div class="card-description">持久化保存 · 刷新不丢失</div>
+      </div>
+      <button class="btn btn-ghost" id="clearHistoryBtn" style="color:var(--destructive)">清空历史</button>
+    </div>
+    <div class="history-list" id="history"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const box = $('box'), countEl = $('count'), copyBtn = $('copyBtn'), clearBtn = $('clearBtn');
+  const pasteNowBtn = $('pasteNowBtn');
+  const statusChip = $('statusChip'), statusText = $('statusText');
+  const history = $('history'), clearHistoryBtn = $('clearHistoryBtn');
+  const modeIndicator = $('modeIndicator');
+  let ws = null, records = [], settings = { autoPaste: false, appendMode: true, enterAfterPaste: false };
+
+  function toast(msg, type = '', ms = 2200) {
+    const t = $('toast'); t.textContent = msg; t.className = 'toast show ' + type;
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast ' + type, ms);
+  }
+  function setStatus(state, text) {
+    statusChip.className = 'status-chip ' + (state || '');
+    statusText.textContent = text;
+  }
+  function updateModeIndicator() {
+    const parts = [];
+    parts.push(settings.appendMode ? '追加模式' : '覆盖模式');
+    parts.push('自动粘贴：' + (settings.autoPaste ? '开' : '关'));
+    if (settings.autoPaste) parts.push('回车：' + (settings.enterAfterPaste ? '开' : '关'));
+    modeIndicator.textContent = parts.join(' · ');
+  }
+
+  async function loadHistory() {
+    try {
+      const r = await fetch('/history'); const j = await r.json();
+      if (j.ok && Array.isArray(j.history)) {
+        records = j.history.map(h => ({ text: h.text, t: h.t || new Date(h.ts).toLocaleTimeString('zh-CN', { hour12: false }), from: h.from || '手机', targetApp: h.targetApp || '' }));
+        renderHistory();
+      }
+    } catch {}
+  }
+  loadHistory();
+
+  clearHistoryBtn.onclick = async () => {
+    if (!records.length) return toast('历史已为空');
+    if (!confirm('确定清空所有历史记录？此操作不可恢复。')) return;
+    try { await fetch('/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) }); } catch {}
+    records = []; renderHistory(); toast('历史已清空', 'success');
+  };
+
+  copyBtn.onclick = async () => {
+    const text = box.value; if (!text) return;
+    try { await navigator.clipboard.writeText(text); } catch { box.select(); document.execCommand('copy'); }
+    copyBtn.classList.add('btn-done'); copyBtn.textContent = '已复制';
+    setTimeout(() => { copyBtn.classList.remove('btn-done'); copyBtn.textContent = '复制全部'; }, 1000);
+    toast('已复制 ' + text.length + ' 字，切应用按 ⌘V 粘贴', 'success', 3000);
+  };
+  box.addEventListener('input', () => {
+    countEl.textContent = box.value.length + ' 字';
+    copyBtn.disabled = !box.value.trim();
+  });
+  clearBtn.onclick = () => { if (box.value && confirm('清空当前内容？')) { box.value = ''; box.dispatchEvent(new Event('input')); } };
+
+  pasteNowBtn.onclick = async () => {
+    if (!box.value.trim()) return toast('没有内容可粘贴', 'error');
+    try { await navigator.clipboard.writeText(box.value); } catch {}
+    try {
+      const r = await fetch('/paste', { method: 'POST' }); const j = await r.json();
+      if (j.ok) toast(j.enterOk ? '已粘贴并回车' : '已粘贴到光标处', 'success');
+      else toast('粘贴失败，请检查辅助功能权限', 'error', 3500);
+    } catch { toast('粘贴失败', 'error'); }
+  };
+
+  function tryWS(url, to = 3000) {
+    return new Promise((rs, rj) => {
+      const s = new WebSocket(url); const t = setTimeout(() => { try { s.close(); } catch {} rj(new Error('to')); }, to);
+      s.onopen = () => { clearTimeout(t); rs(s); };
+      s.onerror = () => { clearTimeout(t); rj(new Error('err')); };
+    });
+  }
+  async function doConnect() {
+    setStatus('warn', '连接中…');
+    const host = location.hostname;
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const port = location.port || (location.protocol === 'https:' ? '443' : '80');
+    const otherPort = proto === 'wss' ? '8000' : '8443';
+    for (const url of [`${proto}://${host}:${port}/desk`, `${proto === 'wss' ? 'ws' : 'wss'}://${host}:${otherPort}/desk`]) {
+      try { ws = await tryWS(url); break; } catch {}
+    }
+    if (!ws) { setStatus('err', '无法连接'); setTimeout(doConnect, 4000); return; }
+    ws.onmessage = (ev) => {
+      try {
+        const m = JSON.parse(ev.data);
+        if (m.type === 'hello') {
+          setStatus('ok', '已连接 · 等待手机发送');
+          if (m.settings) { settings = { ...settings, ...m.settings }; updateModeIndicator(); }
+        }
+        else if (m.type === 'settings' && m.settings) { settings = { ...settings, ...m.settings }; updateModeIndicator(); }
+        else if (m.type === 'text' && typeof m.text === 'string') receive(m.text, m.ts, m.from, m.targetApp);
+        else if (m.type === 'paste_done') {
+          if (m.ok) toast(m.enterOk ? '已自动粘贴并回车' : '已自动粘贴到光标', 'success');
+          else toast('自动粘贴失败，请授权辅助功能', 'error', 3500);
+        }
+      } catch {}
+    };
+    ws.onclose = () => { setStatus('', '已断开，重连中…'); setTimeout(doConnect, 3000); };
+    ws.onerror = () => {};
+  }
+
+  function receive(text, ts, from, targetApp) {
+    if (settings.appendMode && box.value.trim()) {
+      box.value = box.value.trimEnd() + '\n' + text;
+    } else {
+      box.value = text;
+    }
+    box.dispatchEvent(new Event('input'));
+    box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash');
+    navigator.clipboard?.writeText(box.value).catch(() => {
+      try { box.select(); document.execCommand('copy'); box.setSelectionRange(box.value.length, box.value.length); } catch {}
+    });
+    const t = new Date(ts || Date.now()).toLocaleTimeString('zh-CN', { hour12: false });
+    records.unshift({ text, t, from: from || '手机', targetApp: targetApp || '' });
+    if (records.length > 100) records.pop();
+    renderHistory();
+    toast(`收到 ${text.length} 字${targetApp ? ' → ' + targetApp : ''}`, 'success');
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        const c = new Ctx(); const o = c.createOscillator(); const g = c.createGain();
+        o.type = 'sine'; o.frequency.value = 1180;
+        o.connect(g); g.connect(c.destination);
+        g.gain.setValueAtTime(0.0001, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.1, c.currentTime + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.12);
+        o.start(); o.stop(c.currentTime + 0.14);
+        setTimeout(() => c.close(), 300);
+      }
+    } catch {}
+  }
+
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function renderHistory() {
+    history.innerHTML = records.map((r, i) => `
+      <div class="h-item ${i === 0 ? 'latest' : ''}">
+        <div class="h-body">
+          <div class="h-top">
+            <span class="h-badge ${r.targetApp ? '' : 'no-app'}">${r.targetApp ? esc(r.targetApp) : '接收窗口'}</span>
+            <span class="h-time">${r.t}</span>
+            <span class="h-from">${r.from} · ${r.text.length}字</span>
+          </div>
+          <div class="h-text">${esc(r.text)}</div>
+        </div>
+        <div class="h-actions">
+          <button class="mini-btn" data-act="copy" data-i="${i}">复制</button>
+          <button class="mini-btn" data-act="load" data-i="${i}">填入</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  history.addEventListener('click', async (e) => {
+    const b = e.target.closest('.mini-btn'); if (!b) return;
+    const i = +b.dataset.i; const r = records[i]; if (!r) return;
+    if (b.dataset.act === 'copy') {
+      try { await navigator.clipboard.writeText(r.text); } catch {}
+      toast('已复制', 'success');
+    } else if (b.dataset.act === 'load') {
+      box.value = r.text; box.dispatchEvent(new Event('input')); box.focus();
+      toast('已填入编辑框');
+    }
+  });
+
+  fetch('/ip').then(r => r.text()).then(t => {
+    const ip = location.hostname !== 'localhost' ? location.hostname : t.trim();
+    if (ip) $('ip').textContent = ip;
+  }).catch(() => {});
+
+  doConnect();
+})();
+</script>
+</body>
+</html>

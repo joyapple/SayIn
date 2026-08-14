@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#09090b" />
+<meta name="description" content="SayIt — 把手机变成电脑的输入工具。Mac Mini 没有麦克风？用手机输入法优雅输入，浏览器打开即用，无需安装任何 App。" />
+<title>SayIt · 把手机变成电脑的输入法</title>
+<link rel="icon" type="image/svg+xml" href="/app-icon.svg" />
+<style>
+  /* shadcn/ui 风格设计 token，与 App 保持一致 */
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --card: #0c0c0f;
+    --card-foreground: #fafafa;
+    --muted: #18181b;
+    --muted-foreground: #a1a1aa;
+    --border: #27272a;
+    --accent: #fafafa;
+    --accent-foreground: #18181b;
+    --radius: 0.75rem;
+    --success: #22c55e;
+    --ring: #d4d4d8;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --background: #ffffff;
+      --foreground: #09090b;
+      --card: #ffffff;
+      --card-foreground: #09090b;
+      --muted: #f4f4f5;
+      --muted-foreground: #71717a;
+      --border: #e4e4e7;
+      --accent: #18181b;
+      --accent-foreground: #fafafa;
+      --ring: #a1a1aa;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--foreground);
+    background: var(--background);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* 导航栏 */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(12px);
+    background: color-mix(in srgb, var(--background) 80%, transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--foreground); }
+  .brand-logo {
+    width: 32px; height: 32px; border-radius: 0.5rem;
+    background: var(--foreground); color: var(--background);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+  }
+  .brand-name { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+  .nav-links { display: flex; align-items: center; gap: 28px; }
+  .nav-links a { color: var(--muted-foreground); text-decoration: none; font-size: 14px; font-weight: 500; transition: color .15s; }
+  .nav-links a:hover { color: var(--foreground); }
+  @media (max-width: 640px) { .nav-links { display: none; } }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 18px; border-radius: var(--radius);
+    font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
+    border: 1px solid transparent; transition: all .15s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-foreground); }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-outline { background: transparent; color: var(--foreground); border-color: var(--border); }
+  .btn-outline:hover { background: var(--muted); }
+  .btn-lg { height: 48px; padding: 0 24px; font-size: 15px; }
+
+  /* Hero */
+  .hero { position: relative; padding: 96px 0 72px; overflow: hidden; }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background-image: radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+    opacity: .7;
+  }
+  .hero-inner { position: relative; z-index: 1; text-align: center; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--muted);
+    font-size: 13px; font-weight: 500; color: var(--muted-foreground);
+    margin-bottom: 28px;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); }
+  h1 {
+    font-size: clamp(40px, 7vw, 72px); font-weight: 700; line-height: 1.05;
+    letter-spacing: -.03em; margin: 0 0 24px;
+  }
+  .hero h1 .accent { color: var(--muted-foreground); }
+  .lead {
+    font-size: clamp(16px, 2.2vw, 20px); color: var(--muted-foreground);
+    max-width: 640px; margin: 0 auto 40px;
+  }
+  .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  /* 章节通用 */
+  section { padding: 88px 0; }
+  .sec-head { text-align: center; max-width: 720px; margin: 0 auto 56px; }
+  .sec-eyebrow {
+    display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 14px;
+  }
+  h2 { font-size: clamp(30px, 4.5vw, 44px); font-weight: 700; letter-spacing: -.02em; margin: 0 0 18px; line-height: 1.15; }
+  .sec-desc { font-size: 17px; color: var(--muted-foreground); margin: 0; }
+
+  /* 起源故事 */
+  .origin {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 1.25rem; padding: 48px; position: relative; overflow: hidden;
+  }
+  .origin-quote { font-size: clamp(20px, 3vw, 26px); line-height: 1.5; font-weight: 500; margin: 0 0 20px; }
+  .origin-quote::before { content: "“"; font-size: 1.4em; line-height: 0; color: var(--muted-foreground); margin-right: 4px; }
+  .origin-quote::after { content: "”"; font-size: 1.4em; line-height: 0; color: var(--muted-foreground); margin-left: 2px; }
+  .origin-text { color: var(--muted-foreground); font-size: 16px; margin: 0 0 28px; max-width: 720px; }
+  .origin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--border); }
+  .stat-num { font-size: 32px; font-weight: 700; letter-spacing: -.02em; }
+  .stat-label { font-size: 13px; color: var(--muted-foreground); margin-top: 4px; }
+  @media (max-width: 640px) { .origin { padding: 28px; } .origin-stats { grid-template-columns: 1fr; gap: 16px; } }
+
+  /* 痛点 */
+  .pain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .pain-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px; transition: border-color .2s, transform .2s;
+  }
+  .pain-card:hover { border-color: var(--ring); transform: translateY(-2px); }
+  .pain-icon {
+    width: 44px; height: 44px; border-radius: 0.625rem; background: var(--muted);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+    color: var(--foreground);
+  }
+  .pain-card h3 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
+  .pain-card p { font-size: 14px; color: var(--muted-foreground); margin: 0; line-height: 1.6; }
+
+  /* 轻巧 */
+  .light-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+  @media (max-width: 860px) { .light-grid { grid-template-columns: 1fr; gap: 32px; } }
+  .light-list { list-style: none; padding: 0; margin: 0; }
+  .light-list li { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+  .light-list li:last-child { border-bottom: none; }
+  .check {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: color-mix(in srgb, var(--success) 18%, transparent);
+    color: var(--success); display: flex; align-items: center; justify-content: center;
+  }
+  .light-list h4 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .light-list p { font-size: 14px; color: var(--muted-foreground); margin: 0; }
+
+  /* 设备示意 */
+  .device-demo {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 1.25rem; padding: 32px; position: relative;
+    display: flex; flex-direction: column; gap: 18px; align-items: center;
+  }
+  .phone-mock {
+    width: 200px; border: 2px solid var(--border); border-radius: 1.5rem;
+    padding: 16px 12px; background: var(--muted);
+  }
+  .phone-screen { height: 120px; border-radius: 0.625rem; background: var(--background); display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); font-size: 13px; text-align: center; padding: 12px; }
+  .phone-keyboard { margin-top: 10px; height: 46px; border-radius: 0.4rem; background: var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); font-size: 12px; }
+  .flow-arrow { color: var(--muted-foreground); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+  .desk-mock {
+    width: 100%; border: 2px solid var(--border); border-radius: 0.75rem;
+    padding: 14px; background: var(--muted); min-height: 80px;
+    display: flex; align-items: center; color: var(--foreground); font-size: 14px;
+  }
+  .cursor { display: inline-block; width: 2px; height: 16px; background: var(--foreground); margin-left: 2px; animation: blink 1s step-end infinite; vertical-align: middle; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 功能 */
+  .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .feat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; transition: all .2s;
+  }
+  .feat-card:hover { border-color: var(--ring); transform: translateY(-2px); }
+  .feat-icon { width: 40px; height: 40px; border-radius: 0.5rem; background: var(--muted); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--foreground); }
+  .feat-card h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+  .feat-card p { font-size: 13px; color: var(--muted-foreground); margin: 0; line-height: 1.6; }
+
+  /* 下载 CTA */
+  .cta-section { padding: 96px 0; }
+  .cta-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 1.5rem; padding: 64px 40px; text-align: center; position: relative; overflow: hidden;
+  }
+  .cta-box::before {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background-image: radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+    background-size: 24px 24px; opacity: .5;
+    mask-image: radial-gradient(ellipse 60% 80% at 50% 50%, #000 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 80% at 50% 50%, #000 30%, transparent 80%);
+  }
+  .cta-box > * { position: relative; z-index: 1; }
+  .cta-box h2 { margin-bottom: 16px; }
+  .cta-box .lead { margin-bottom: 36px; }
+  .download-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .code-block {
+    margin-top: 36px; text-align: left; max-width: 480px; margin-left: auto; margin-right: auto;
+    background: var(--background); border: 1px solid var(--border); border-radius: 0.625rem; padding: 16px 18px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; color: var(--muted-foreground);
+    overflow-x: auto;
+  }
+  .code-block .prompt { color: var(--success); margin-right: 8px; }
+  .code-block .cm { color: var(--muted-foreground); opacity: .6; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--border); padding: 40px 0; }
+  .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .footer-inner p { font-size: 13px; color: var(--muted-foreground); margin: 0; }
+  .footer-links { display: flex; gap: 20px; }
+  .footer-links a { color: var(--muted-foreground); text-decoration: none; font-size: 13px; }
+  .footer-links a:hover { color: var(--foreground); }
+
+  /* 入场动画 */
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .cursor { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-logo">S</span>
+      <span class="brand-name">SayIt</span>
+    </a>
+    <div class="nav-links">
+      <a href="#origin">初衷</a>
+      <a href="#pain">痛点</a>
+      <a href="#lightweight">轻巧</a>
+      <a href="#features">功能</a>
+    </div>
+    <a class="btn btn-primary" href="#download">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      下载
+    </a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="wrap hero-inner">
+    <span class="badge"><span class="dot"></span>开源 · 无需安装 App · 浏览器即用</span>
+    <h1>把手机变成<br>电脑的<span class="accent">输入法</span></h1>
+    <p class="lead">Mac Mini 没有麦克风？打字不便？用手机自带的输入法（键盘 / 语音）写内容，点一下就传到电脑。手机零安装，浏览器打开即用。</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary btn-lg" href="#download">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载使用
+      </a>
+      <a class="btn btn-outline btn-lg" href="#origin">了解初衷</a>
+    </div>
+  </div>
+</header>
+
+<!-- 初衷 / 起源故事 -->
+<section id="origin">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-eyebrow">为什么做</span>
+      <h2>一台没有麦克风的 Mac Mini</h2>
+      <p class="sec-desc">这不是一个商业项目，而是一个开发者为了解决自己的痛点，顺手做出来的小工具。</p>
+    </div>
+    <div class="origin reveal">
+      <p class="origin-quote">我有一台 Mac Mini，性能很强，但它没有麦克风，也没有摄像头。想用语音输入、想随手打几个字发给同事，只能抱个外接麦，或者对着手机敲完再复制粘贴——太麻烦了。</p>
+      <p class="origin-text">于是就有了 SayIt：手机当输入板，电脑当接收端。手机不用装任何 App，浏览器打开就能用。打字、语音都行，写完一点「发送」，文字就出现在电脑光标处。就这样，Mac Mini 终于有了「嘴」。</p>
+      <div class="origin-stats">
+        <div>
+          <div class="stat-num">0</div>
+          <div class="stat-label">手机端需安装的 App</div>
+        </div>
+        <div>
+          <div class="stat-num">1</div>
+          <div class="stat-label">条 npm 命令即可启动</div>
+        </div>
+        <div>
+          <div class="stat-num">2</div>
+          <div class="stat-label">台设备（手机 + 电脑）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 痛点 -->
+<section id="pain">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-eyebrow">它能解决什么</span>
+      <h2>那些让人抓狂的小麻烦</h2>
+      <p class="sec-desc">如果你也遇到过下面这些场景，SayIt 大概能帮上忙。</p>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card reveal">
+        <div class="pain-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>台式机没有麦克风</h3>
+        <p>Mac Mini、组装机、没有内置麦的显示器，想语音输入只能外接设备。SayIt 直接用手机当麦克风和输入板。</p>
+      </div>
+      <div class="pain-card reveal">
+        <div class="pain-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        </div>
+        <h3>手机打字再复制粘贴</h3>
+        <p>在手机上写好长文，再手动复制、切到电脑、粘贴——步骤太多还容易丢。SayIt 一点「发送」直接到位。</p>
+      </div>
+      <div class="pain-card reveal">
+        <div class="pain-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+        </div>
+        <h3>跨设备传文字太繁琐</h3>
+        <p>想把手机上的一段文字弄到电脑上，得绕一圈：发给「文件传输助手」、贴到云笔记、或邮件发自己。SayIt 只传文字，一条局域网 WebSocket 直连，实时又省事。</p>
+      </div>
+      <div class="pain-card reveal">
+        <div class="pain-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <h3>系统语音输入不好用</h3>
+        <p>macOS 听写要联网、识别慢、还要按热键。SayIt 用你手机上熟悉的输入法，想怎么打就怎么打。</p>
+      </div>
+      <div class="pain-card reveal">
+        <div class="pain-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3>长文输入太累</h3>
+        <p>在电脑键盘上敲几百字还行，上千字就累了。用手机熟悉的输入法，躺着走着都能写，写完一点「发送」就到电脑。</p>
+      </div>
+      <div class="pain-card reveal">
+        <div class="pain-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <h3>外接话筒又贵又不随身</h3>
+        <p>一个像样的 USB 麦克风要花几百块，而且你不会时刻把它带在身边。手机却是你时时刻刻握在手里的，它本就是最现成的输入设备。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 轻巧方便 -->
+<section id="lightweight">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-eyebrow">轻巧方便</span>
+      <h2>小而美，不臃肿</h2>
+      <p class="sec-desc">没有账号、没有云端、没有订阅。一个 Node.js 文件跑起来，数据全在你自己电脑上。</p>
+    </div>
+    <div class="light-grid">
+      <ul class="light-list reveal">
+        <li>
+          <span class="check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div>
+            <h4>手机零安装</h4>
+            <p>不用下载 App，不用装插件。手机浏览器打开一个网址就能用，支持添加到主屏幕像 App 一样全屏。</p>
+          </div>
+        </li>
+        <li>
+          <span class="check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div>
+            <h4>纯局域网，数据不出门</h4>
+            <p>手机和电脑在同一 WiFi 下直连，文字通过 WebSocket 实时传输，不经过任何第三方服务器。</p>
+          </div>
+        </li>
+        <li>
+          <span class="check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div>
+            <h4>一条命令启动</h4>
+            <p><code>npm start</code> 就能跑起来。依赖只有一个 WebSocket 库，体积小、启动快、不占资源。</p>
+          </div>
+        </li>
+        <li>
+          <span class="check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <div>
+            <h4>跨平台</h4>
+            <p>支持 macOS 和 Windows。macOS 还能自动粘贴到光标位置，Windows 可手动复制粘贴。</p>
+          </div>
+        </li>
+      </ul>
+      <div class="device-demo reveal">
+        <div class="phone-mock">
+          <div class="phone-screen">在手机上打字或<br>语音输入……</div>
+          <div class="phone-keyboard">⌨ 手机输入法</div>
+        </div>
+        <div class="flow-arrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+          WebSocket 局域网直连
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </div>
+        <div class="desk-mock">你好，这是从手机发过来的文字<span class="cursor"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 功能点 -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-eyebrow">功能一览</span>
+      <h2>该有的都有</h2>
+      <p class="sec-desc">围绕「输入 → 传输 → 落地」全链路打磨，细节足够日常使用。</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <h3>手机输入 电脑接收</h3>
+        <p>用手机输入法打字或语音识别，点发送实时传到电脑接收窗口。</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg></div>
+        <h3>应用切换</h3>
+        <p>一键获取电脑运行中的应用，切换并自动粘贴到目标软件。</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg></div>
+        <h3>自动粘贴</h3>
+        <p>发送后自动粘贴到电脑光标位置（macOS 需授权辅助功能权限）。</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></div>
+        <h3>回车发送</h3>
+        <p>粘贴后自动模拟回车，适配微信、QQ 等需要回车发送的场景。</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <h3>追加模式</h3>
+        <p>新内容追加到输入框末尾而非覆盖，适合分段撰写长文。</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h3>历史记录</h3>
+        <p>发送记录持久化保存，支持一键重新发送，误删也不怕。</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <h3>软件白名单</h3>
+        <p>在设置页筛选常用软件，避免运行中列表太长干扰选择。</p>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg></div>
+        <h3>PWA 支持</h3>
+        <p>添加到手机主屏幕，像原生 App 一样全屏使用，无地址栏。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 下载 CTA -->
+<section class="cta-section" id="download">
+  <div class="wrap">
+    <div class="cta-box reveal">
+      <span class="sec-eyebrow">开始使用</span>
+      <h2>给 Mac Mini 一个「嘴」</h2>
+      <p class="lead">克隆仓库，一条命令启动。手机打开网址，立刻就能用。</p>
+      <div class="download-btns">
+        <a class="btn btn-primary btn-lg" href="#">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          GitHub 仓库
+        </a>
+      </div>
+      <div class="code-block">
+        <span class="prompt">$</span>git clone <span style="color: var(--ring)">&lt;替换为你的仓库地址&gt;</span>.git<br>
+        <span class="prompt">$</span>cd phone-as-mic && npm install && npm start
+      </div>
+      <p style="margin-top: 24px; font-size: 13px; color: var(--muted-foreground);">需 Node.js 18+ · 手机与电脑在同一 WiFi · Apache-2.0 协议开源</p>
+    </div>
+  </div>
+</section>
+
+<!-- footer -->
+<footer>
+  <div class="wrap footer-inner">
+    <p>© 2026 SayIt · 把它说出来</p>
+    <div class="footer-links">
+      <a href="#">GitHub</a>
+      <a href="#origin">初衷</a>
+      <a href="#features">功能</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // 滚动入场动画
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

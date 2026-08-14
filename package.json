@@ -1,0 +1,14 @@
+{
+  "name": "phone-writing-board",
+  "version": "2.0.0",
+  "description": "手机写字板 → 电脑：用手机输入法（键盘/语音）写内容，点发送传到电脑显示窗口",
+  "author": "joyapple",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

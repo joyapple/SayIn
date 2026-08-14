@@ -1,0 +1,323 @@
+<!--
+  SayIt · 电脑端设置页面
+  自动粘贴、追加模式、回车发送、软件白名单
+  @author  joyapple
+  @license Apache-2.0
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SayIt · 设置</title>
+<style>
+  :root {
+    --background: #09090b; --foreground: #fafafa;
+    --card: #09090b; --card-foreground: #fafafa;
+    --primary: #fafafa; --primary-foreground: #18181b;
+    --secondary: #27272a; --secondary-foreground: #fafafa;
+    --muted: #27272a; --muted-foreground: #a1a1aa;
+    --accent: #27272a; --accent-foreground: #fafafa;
+    --destructive: #ef4444;
+    --border: #27272a; --input: #27272a; --ring: #d4d4d8;
+    --radius: 0.5rem; --success: #22c55e;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --background: #ffffff; --foreground: #09090b;
+      --card: #ffffff; --card-foreground: #09090b;
+      --primary: #18181b; --primary-foreground: #fafafa;
+      --secondary: #f4f4f5; --secondary-foreground: #18181b;
+      --muted: #f4f4f5; --muted-foreground: #71717a;
+      --accent: #f4f4f5; --accent-foreground: #18181b;
+      --border: #e4e4e7; --input: #e4e4e7; --ring: #a1a1aa;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--foreground); background: var(--background); -webkit-font-smoothing: antialiased; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid var(--border);
+    background: var(--background); position: sticky; top: 0; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo { width: 30px; height: 30px; border-radius: var(--radius);
+    background: var(--foreground); color: var(--background);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; }
+  .brand-name { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .brand-sub { font-size: 11px; color: var(--muted-foreground); font-weight: 500; margin-top: 1px; }
+  .nav-link { padding: 6px 12px; border-radius: var(--radius); font-size: 13px; font-weight: 500;
+    color: var(--muted-foreground); text-decoration: none; transition: all .15s; }
+  .nav-link:hover { background: var(--accent); color: var(--foreground); }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+  .card { background: var(--card); border: 1px solid var(--border);
+    border-radius: calc(var(--radius) + 2px); overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .card-title { font-size: 14px; font-weight: 600; margin: 0; }
+  .card-description { font-size: 12px; color: var(--muted-foreground); margin-top: 3px; line-height: 1.5; }
+  .card-content { padding: 8px 0; }
+
+  .row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: none; }
+  .row-main { flex: 1; min-width: 0; }
+  .row-label { font-size: 14px; font-weight: 500; }
+  .row-desc { font-size: 12px; color: var(--muted-foreground); margin-top: 2px; line-height: 1.5; }
+  .row-control { flex-shrink: 0; padding-top: 2px; }
+
+  .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: var(--input);
+    border: 1px solid var(--border); border-radius: 9999px; transition: .2s; }
+  .slider:before { content: ""; position: absolute; height: 16px; width: 16px; left: 2px; top: 2px;
+    background: var(--foreground); border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: var(--foreground); border-color: var(--foreground); }
+  .switch input:checked + .slider:before { transform: translateX(18px); background: var(--background); }
+
+  .btn { padding: 8px 14px; border-radius: var(--radius); cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: all .15s; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 5px; border: 1px solid transparent; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+  .btn-primary:hover { opacity: .9; }
+  .btn-secondary { background: var(--secondary); color: var(--secondary-foreground); border-color: var(--border); }
+  .btn-secondary:hover { background: var(--accent); }
+  .btn-outline { background: var(--background); color: var(--foreground); border-color: var(--border); }
+  .btn-outline:hover { background: var(--accent); }
+  .btn-ghost { background: none; color: var(--foreground); border-color: transparent; }
+  .btn-ghost:hover { background: var(--accent); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  .chip-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px 5px 12px;
+    background: var(--secondary); border: 1px solid var(--border); border-radius: 9999px;
+    font-size: 12px; font-weight: 500; color: var(--secondary-foreground); }
+  .chip-x { background: none; border: none; color: var(--muted-foreground); cursor: pointer;
+    font-size: 14px; padding: 0 0 0 2px; line-height: 1; font-family: inherit; }
+  .chip-x:hover { color: var(--destructive); }
+  .empty { padding: 24px 20px; text-align: center; color: var(--muted-foreground); font-size: 13px; }
+
+  .quick-add-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 16px; }
+  .quick-chip { padding: 6px 12px; border-radius: 9999px; border: 1px solid var(--border);
+    background: var(--background); color: var(--foreground); font-size: 12px; cursor: pointer;
+    font-family: inherit; transition: all .15s; white-space: nowrap; font-weight: 500; }
+  .quick-chip:hover { border-color: var(--ring); background: var(--accent); }
+  .quick-chip.added { opacity: .4; pointer-events: none; }
+  .manual-add { display: flex; gap: 6px; padding: 0 20px 16px; }
+  .manual-add input { flex: 1; padding: 7px 12px; border-radius: var(--radius);
+    background: var(--background); border: 1px solid var(--input); color: var(--foreground);
+    font-size: 13px; outline: none; font-family: inherit; transition: border-color .15s, box-shadow .15s; }
+  .manual-add input:focus { border-color: var(--ring); box-shadow: 0 0 0 2px var(--ring); }
+
+  .info-box { padding: 12px 20px; background: var(--secondary); border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted-foreground); line-height: 1.6; }
+  .info-box b { color: var(--foreground); }
+  .info-box code { background: var(--background); padding: 1px 5px; border-radius: 3px;
+    border: 1px solid var(--border); font-size: 11px; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    background: var(--foreground); color: var(--background); padding: 10px 16px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: all .2s ease; z-index: 99; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); color: #fff; }
+  .toast.error { background: var(--destructive); color: #fff; }
+
+  .loading { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--muted-foreground);
+    border-top-color: var(--foreground); border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-logo">S</div>
+    <div>
+      <div class="brand-name">SayIt</div>
+      <div class="brand-sub">设置</div>
+    </div>
+  </div>
+  <a class="nav-link" href="/desk">返回接收窗口</a>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">行为设置</div>
+      <div class="card-description">手机发送文字后电脑端的处理方式</div>
+    </div>
+    <div class="card-content">
+      <div class="row">
+        <div class="row-main">
+          <div class="row-label">自动粘贴到光标</div>
+          <div class="row-desc">收到文字后自动模拟 ⌘V 粘贴到当前光标位置（需辅助功能 + 自动化权限）</div>
+        </div>
+        <div class="row-control"><label class="switch"><input type="checkbox" id="autoPaste"><span class="slider"></span></label></div>
+      </div>
+      <div class="row">
+        <div class="row-main">
+          <div class="row-label">追加模式</div>
+          <div class="row-desc">新文字追加到已有内容末尾；关闭则覆盖替换</div>
+        </div>
+        <div class="row-control"><label class="switch"><input type="checkbox" id="appendMode"><span class="slider"></span></label></div>
+      </div>
+      <div class="row">
+        <div class="row-main">
+          <div class="row-label">粘贴后回车发送</div>
+          <div class="row-desc">自动粘贴后立即按回车（适用于微信/钉钉等回车即发送的软件）</div>
+        </div>
+        <div class="row-control"><label class="switch"><input type="checkbox" id="enterAfterPaste"><span class="slider"></span></label></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">可切换软件白名单</div>
+      <div class="card-description">设置后手机端只显示白名单内的软件；留空则显示所有运行中应用</div>
+    </div>
+    <div class="card-content">
+      <div class="row" style="border-bottom:none; padding-bottom:8px">
+        <div class="row-main">
+          <div class="row-label" id="whitelistCount" style="margin-bottom:4px">白名单软件</div>
+          <div class="row-desc">从运行中应用快速添加，或手动输入软件名称</div>
+        </div>
+        <div class="row-control" style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" id="loadAppsBtn">加载运行中应用</button>
+          <button class="btn btn-ghost btn-sm" id="clearWhitelistBtn" style="color:var(--destructive)">清空</button>
+        </div>
+      </div>
+      <div class="chip-list" id="whitelistChips"></div>
+      <div class="quick-add-list" id="quickAddList" style="display:none"></div>
+      <div class="manual-add">
+        <input id="manualAppInput" placeholder="输入软件名称，回车添加…" />
+        <button class="btn btn-secondary btn-sm" id="manualAddBtn">添加</button>
+      </div>
+    </div>
+    <div class="info-box">
+      <b>提示</b>：软件名称需与系统显示名一致（如 <code>微信</code>、<code>Google Chrome</code>）。点击「加载运行中应用」可从当前打开的软件里一键添加。
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let settings = { autoPaste: false, appendMode: true, enterAfterPaste: false, appWhitelist: [], lastTargetApp: '' };
+
+  function toast(msg, type = '') {
+    const t = $('toast'); t.textContent = msg; t.className = 'toast show ' + type;
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast ' + type, 2200);
+  }
+
+  async function load() {
+    try {
+      const r = await fetch('/settings'); const j = await r.json();
+      if (j.ok && j.settings) { settings = { ...settings, ...j.settings }; render(); }
+    } catch {}
+  }
+  async function save(partial) {
+    try {
+      const r = await fetch('/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(partial) });
+      const j = await r.json();
+      if (j.ok && j.settings) settings = { ...settings, ...j.settings };
+    } catch {}
+  }
+
+  function render() {
+    $('autoPaste').checked = !!settings.autoPaste;
+    $('appendMode').checked = !!settings.appendMode;
+    $('enterAfterPaste').checked = !!settings.enterAfterPaste;
+    renderWhitelist();
+  }
+
+  function renderWhitelist() {
+    const chips = $('whitelistChips');
+    const list = settings.appWhitelist || [];
+    $('whitelistCount').textContent = `白名单软件 · ${list.length} 个`;
+    if (!list.length) {
+      chips.innerHTML = '<div class="empty" style="padding:12px 0">未设置白名单（手机端显示所有运行中应用）</div>';
+    } else {
+      chips.innerHTML = list.map((a, i) => `<span class="chip">${esc(a)}<button class="chip-x" data-i="${i}">×</button></span>`).join('');
+    }
+  }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  ['autoPaste', 'appendMode', 'enterAfterPaste'].forEach(k => {
+    $(k).onchange = async (e) => {
+      await save({ [k]: e.target.checked });
+      toast('已保存', 'success');
+    };
+  });
+
+  $('whitelistChips').addEventListener('click', async (e) => {
+    const x = e.target.closest('.chip-x'); if (!x) return;
+    const i = +x.dataset.i;
+    const list = [...(settings.appWhitelist || [])];
+    list.splice(i, 1);
+    await save({ appWhitelist: list });
+    renderWhitelist();
+    toast('已移除', 'success');
+  });
+
+  $('clearWhitelistBtn').onclick = async () => {
+    if (!(settings.appWhitelist || []).length) return;
+    if (!confirm('清空白名单？')) return;
+    await save({ appWhitelist: [] });
+    renderWhitelist();
+    toast('已清空', 'success');
+  };
+
+  $('loadAppsBtn').onclick = async () => {
+    const btn = $('loadAppsBtn');
+    btn.innerHTML = '<span class="loading"></span> 加载中…';
+    btn.disabled = true;
+    try {
+      const r = await fetch('/apps'); const j = await r.json();
+      if (!j.ok) { toast('获取失败', 'error'); return; }
+      const apps = j.apps || [];
+      const list = $('quickAddList');
+      const current = new Set(settings.appWhitelist || []);
+      if (!apps.length) { list.innerHTML = '<div class="empty" style="padding:12px 0">没有运行中的应用</div>'; }
+      else {
+        list.innerHTML = apps.map(a => `<button class="quick-chip${current.has(a) ? ' added' : ''}" data-name="${esc(a)}">${esc(a)}${current.has(a) ? ' ✓' : ' +'}</button>`).join('');
+      }
+      list.style.display = '';
+      list.querySelectorAll('.quick-chip').forEach(c => {
+        c.onclick = async () => {
+          const name = c.dataset.name;
+          const arr = [...(settings.appWhitelist || [])];
+          if (!arr.includes(name)) { arr.push(name); await save({ appWhitelist: arr }); renderWhitelist(); }
+          c.classList.add('added'); c.innerHTML = esc(name) + ' ✓';
+        };
+      });
+    } catch { toast('获取失败', 'error'); }
+    finally { btn.innerHTML = '加载运行中应用'; btn.disabled = false; }
+  };
+
+  async function manualAdd() {
+    const inp = $('manualAppInput');
+    const name = inp.value.trim();
+    if (!name) return;
+    const arr = [...(settings.appWhitelist || [])];
+    if (arr.includes(name)) { toast('已存在', 'error'); return; }
+    arr.push(name);
+    await save({ appWhitelist: arr });
+    renderWhitelist();
+    inp.value = '';
+    toast('已添加「' + name + '」', 'success');
+  }
+  $('manualAddBtn').onclick = manualAdd;
+  $('manualAppInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') manualAdd(); });
+
+  load();
+})();
+</script>
+</body>
+</html>
