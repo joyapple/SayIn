@@ -161,6 +161,14 @@
     background: var(--foreground); color: var(--background); font-size: 12px; font-weight: 600;
     display: flex; align-items: center; justify-content: center; }
   .help-modal-content .step-text { flex: 1; color: var(--muted-foreground); }
+
+  /* Footer */
+  .footer { max-width: 760px; margin: 0 auto; padding: 24px 24px 40px; text-align: center;
+    font-size: 12px; color: var(--muted-foreground); line-height: 1.7; }
+  .footer a { color: var(--muted-foreground); text-decoration: none; border-bottom: 1px solid var(--border);
+    transition: color .15s, border-color .15s; }
+  .footer a:hover { color: var(--foreground); border-color: var(--ring); }
+  .footer .sep { margin: 0 6px; opacity: .6; }
 </style>
 </head>
 <body>
@@ -259,6 +267,15 @@
   </div>
 </div>
 
+<footer class="footer">
+  <span data-i18n="footer.madeBy">Crafted by</span>
+  <a href="https://github.com/joyapple" target="_blank" rel="noopener">JOYAPPLE</a>
+  <span class="sep">·</span>
+  <a href="https://github.com/joyapple/SayIn" target="_blank" rel="noopener">GitHub</a>
+  <span class="sep">·</span>
+  <span>Apache-2.0</span>
+</footer>
+
 <div class="help-modal" id="helpModal">
   <div class="help-modal-mask" id="helpMask"></div>
   <div class="help-modal-body">
@@ -301,6 +318,7 @@
       'toast.added': n => `已添加「${n}」`, 'toast.loading': '加载中…',
       'confirm.clearWhitelist': '清空白名单？',
       'nav.help': '帮助',
+      'footer.madeBy': 'Copyright © 2026',
       'help.title': '使用帮助',
       'help.content': `
 <h3>快速开始</h3>
@@ -378,6 +396,7 @@
       'toast.added': n => `Added "${n}"`, 'toast.loading': 'Loading…',
       'confirm.clearWhitelist': 'Clear whitelist?',
       'nav.help': 'Help',
+      'footer.madeBy': 'Copyright © 2026',
       'help.title': 'Help',
       'help.content': `
 <h3>Quick Start</h3>
