@@ -6,6 +6,27 @@ Mac Mini 没有麦克风？打字不便？用手机自带的输入法（键盘 /
 
 **开源协议：Apache-2.0**
 
+## 索引 / Index
+
+- **中文版（当前文件）**：[README.md](./README.md)
+- **English version**：[README.en.md](./README.en.md)
+
+### 目录
+
+- [为什么做](#为什么做)
+- [它能解决什么](#它能解决什么)
+- [小而美，不臃肿](#小而美不臃肿)
+- [功能一览](#功能一览)
+- [快速开始](#快速开始)
+- [PWA 安装](#pwa-安装推荐)
+- [设置页面](#设置页面)
+- [macOS 权限配置](#macos-权限配置)
+- [跨电脑部署 / 证书自动生成](#跨电脑部署--证书自动生成)
+- [项目结构](#项目结构)
+- [技术架构](#技术架构)
+- [常见问题](#常见问题)
+- [License](#license)
+
 ---
 
 ## 为什么做
@@ -162,6 +183,7 @@ npm start
 | 追加模式 | 新内容追加到输入框末尾，而非覆盖 |
 | 粘贴后回车 | 自动粘贴后模拟回车，适配需要回车发送的软件 |
 | 软件白名单 | 筛选可切换的软件，留空则显示全部运行中应用 |
+| 语言 | 中文 / English 切换界面语言 |
 
 所有设置自动持久化到 `data/settings.json`，重启不丢失。
 
@@ -186,10 +208,48 @@ npm start
 
 ---
 
+## 跨电脑部署 / 证书自动生成
+
+证书完全自动生成，**不需要任何手动配置**。
+
+### 工作机制
+
+1. 启动时检查 `certs/cert.pem` 和 `certs/key.pem` 是否存在
+2. **不存在**（首次运行）→ 自动生成自签证书，SAN 中包含当前电脑所有网卡的 IP
+3. **已存在** → 直接复用，不重新生成
+
+### 三种部署场景
+
+**场景 1：新电脑用 `git clone` 拉取（推荐）**
+
+- `certs/` 目录在 `.gitignore` 中，clone 下来不含证书
+- 首次 `npm start` 自动生成，IP 自动匹配新电脑
+- **零配置**
+
+**场景 2：直接拷贝整个项目目录（含 `certs/`）到新电脑**
+
+- 会复用旧证书
+- 但旧证书 SAN 里的 IP 是旧电脑的，新电脑 IP 不同时浏览器会显示「证书不匹配」警告（不影响使用，手动信任即可，但每次都有警告）
+- **建议**：删掉 `certs/` 目录，启动时重新生成
+
+**场景 3：Windows 电脑**
+
+- Windows 默认未安装 openssl
+- 程序会自动走 Node.js 内置 crypto 兜底方案生成证书，不依赖系统 openssl
+- **也能跑通**，同样零配置
+
+### 证书兼容性细节
+
+- 优先尝试 `/opt/homebrew/bin/openssl`（Apple Silicon）、`/usr/local/bin/openssl`（Intel Mac）、`openssl`（PATH）三种路径
+- 使用 `-config` 完整配置文件方式，同时兼容 macOS 自带 LibreSSL 和 brew 安装的 OpenSSL
+- SAN 中 `localhost` 使用 `DNS:` 前缀，真实 IP 使用 `IP:` 前缀，符合 RFC 5280 规范
+
+---
+
 ## 项目结构
 
 ```
-phone-as-mic/
+SayIn/
 ├── server.js              # 后端服务（HTTP/HTTPS + WebSocket + 静态文件）
 ├── package.json
 ├── public/                # 前端页面
@@ -203,11 +263,12 @@ phone-as-mic/
 ├── data/                  # 持久化数据
 │   ├── settings.json      # 用户设置
 │   └── history.json       # 发送历史
-├── certs/                 # 自签证书（自动生成）
+├── certs/                 # 自签证书（自动生成，.gitignore 忽略）
 │   ├── cert.pem
 │   └── key.pem
 ├── LICENSE
-└── README.md
+├── README.md              # 中文版说明
+└── README.en.md           # 英文版说明
 ```
 
 ## 技术架构
@@ -232,6 +293,7 @@ phone-as-mic/
 - **应用切换**：`open -a`（零权限）+ `osascript`（兜底）
 - **自动粘贴**：`pbcopy` 写入剪贴板 + `osascript` 模拟 Cmd+V
 - **PWA**：manifest.json + Service Worker 离线缓存
+- **证书生成**：openssl `-config` 方式（兼容 LibreSSL/OpenSSL）+ Node.js crypto 兜底
 
 ---
 
@@ -264,6 +326,12 @@ phone-as-mic/
 - 点击设置页「加载运行中应用」刷新列表
 - 系统自带应用（访达、控制中心等）会自动过滤
 - 可手动添加白名单指定常用软件
+
+### 换了一台电脑证书报错？
+
+- 不要把旧电脑的 `certs/` 目录拷贝到新电脑
+- 删掉 `certs/` 目录，重新 `npm start` 会自动生成新证书
+- 新证书的 SAN 会自动匹配新电脑的 IP
 
 ---
 
