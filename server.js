@@ -254,6 +254,159 @@ function activateApp(name) {
   });
 }
 
+
+// === 证书兜底：Node.js crypto 原生生成自签证书 ===
+// 支持 Subject Alternative Name，导出 PEM 格式，兼容 macOS LibreSSL 环境
+function generateCertNative(keyPath, certPath, hosts) {
+  return new Promise((resolve, reject) => {
+    try {
+      // 1. 生成 RSA 密钥对
+      crypto.generateKeyPair('rsa', {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      }, (err, pubPem, privPem) => {
+        if (err) return reject(err);
+        try {
+          // 2. 构建证书：手动 DER 编码（TBSCertificate + sign）
+          const now = new Date();
+          const notBefore = now;
+          const notAfter = new Date(now.getTime() + 10 * 365 * 24 * 3600 * 1000);
+
+          // 辅助 DER 编码函数
+          const derLen = (len) => {
+            if (len < 0x80) return Buffer.from([len]);
+            if (len < 0x100) return Buffer.from([0x81, len]);
+            if (len < 0x10000) return Buffer.from([0x82, (len >> 8) & 0xff, len & 0xff]);
+            return Buffer.from([0x83, (len >> 16) & 0xff, (len >> 8) & 0xff, len & 0xff]);
+          };
+          const derTag = (tag, valueBuf) => Buffer.concat([Buffer.from([tag]), derLen(valueBuf.length), valueBuf]);
+          const INT = (n) => {
+            // 非负整数 DER
+            if (n === 0) return derTag(0x02, Buffer.from([0]));
+            const bytes = [];
+            let x = n;
+            while (x > 0) { bytes.unshift(x & 0xff); x >>= 8; }
+            if (bytes[0] & 0x80) bytes.unshift(0x00);
+            return derTag(0x02, Buffer.from(bytes));
+          };
+          const SEQ = (items) => derTag(0x30, Buffer.concat(items));
+          const BIT_STRING = (buf) => derTag(0x03, Buffer.concat([Buffer.from([0x00]), buf]));
+          const OCTET = (buf) => derTag(0x04, buf);
+          const UTF8 = (str) => derTag(0x0c, Buffer.from(str, 'utf8'));
+          const OID = (oidStr) => {
+            const parts = oidStr.split('.').map(Number);
+            const bytes = [40 * parts[0] + parts[1]];
+            for (let i = 2; i < parts.length; i++) {
+              let v = parts[i];
+              const arr = [];
+              do { arr.unshift(v & 0x7f); v >>= 7; } while (v > 0);
+              for (let j = 0; j < arr.length - 1; j++) arr[j] |= 0x80;
+              bytes.push(...arr);
+            }
+            return derTag(0x06, Buffer.from(bytes));
+          };
+          const UTCTime = (d) => {
+            const pad = (n) => String(n).padStart(2, '0');
+            const y = String(d.getUTCFullYear()).slice(2);
+            const s = `${y}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+            return derTag(0x17, Buffer.from(s, 'ascii'));
+          };
+
+          // 3. 解析 SubjectPublicKeyInfo 的 DER（从 pubPem 提取）
+          const pubDer = Buffer.from(pubPem.replace(/-----(BEGIN|END) PUBLIC KEY-----/g, '').replace(/\s+/g, ''), 'base64');
+          // 从 pubDer 提取 algorithm 部分（第2个子元素前）和 subjectPublicKey bit string
+          // pubDer: SEQ { algorithm SEQ, BIT STRING(public key) }
+          // 为简化，直接把整个 pubDer 当作已编码的 SubjectPublicKeyInfo
+          const spkiEncoded = pubDer;
+
+          // 4. 构建 v3 扩展（关键：Subject Alt Name + EKU + BasicConstraints）
+          // SAN: 每个 IP 地址用 OCTET STRING 包裹 raw 4 bytes，tag=7 (iPAddress) in GeneralName
+          const buildSAN = () => {
+            const gens = [];
+            for (const h of hosts) {
+              const ipMatch = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+              if (ipMatch) {
+                // IP: tag 7, value = OCTET(4 bytes)
+                const raw = Buffer.from([+ipMatch[1], +ipMatch[2], +ipMatch[3], +ipMatch[4]]);
+                gens.push(Buffer.from([0x87, raw.length, ...raw])); // context-specific 7, primitive
+              } else {
+                // DNS: tag 2
+                const raw = Buffer.from(h, 'utf8');
+                gens.push(Buffer.from([0x82, raw.length, ...raw]));
+              }
+            }
+            const gensSeq = derTag(0x30, Buffer.concat(gens));
+            // Extn: SEQUENCE { OID(2.5.29.17), critical? default false, OCTET(SubjectAltName) }
+            return SEQ([
+              OID('2.5.29.17'),
+              OCTET(gensSeq),
+            ]);
+          };
+
+          // EKU: serverAuth 1.3.6.1.5.5.7.3.1
+          const buildEKU = () => SEQ([
+            OID('2.5.29.37'),
+            OCTET(SEQ([OID('1.3.6.1.5.5.7.3.1')])),
+          ]);
+
+          // BasicConstraints: CA:FALSE
+          const buildBC = () => SEQ([
+            OID('2.5.29.19'),
+            OCTET(SEQ([])), // BOOLEAN default FALSE 可省略
+          ]);
+
+          const extensionsList = [buildSAN(), buildEKU(), buildBC()];
+          const extensionsSeq = SEQ(extensionsList);
+
+          // 5. TBSCertificate:
+          // SEQUENCE {
+          //   [0] EXPLICIT Version INTEGER v3=2,
+          //   serial INT,
+          //   signature AlgorithmIdentifier,
+          //   issuer Name,
+          //   validity SEQ { notBefore, notAfter },
+          //   subject Name,
+          //   subjectPublicKeyInfo SubjectPublicKeyInfo,
+          //   [3] EXPLICIT Extensions SEQ
+          // }
+          const serial = INT(Date.now() & 0x7fffffff);
+          // sha256WithRSAEncryption OID 1.2.840.113549.1.1.11 + NULL params
+          const sigAlg = SEQ([OID('1.2.840.113549.1.1.11'), derTag(0x05, Buffer.alloc(0))]);
+          const issuer = SEQ([SEQ([OID('2.5.4.3'), UTF8('SayIn')])]);
+          const subject = issuer;
+          const validity = SEQ([UTCTime(notBefore), UTCTime(notAfter)]);
+          const versionCtx = Buffer.from([0xa0, 0x03, 0x02, 0x01, 0x02]); // [0] { INT 2 }
+          const spki = spkiEncoded;
+          const extCtx = derTag(0xa3, extensionsSeq); // [3] explicit
+
+          const tbsParts = [versionCtx, serial, sigAlg, issuer, validity, subject, spki, extCtx];
+          const tbsDer = SEQ(tbsParts);
+
+          // 6. 用私钥对 tbsDer 签名
+          const sign = crypto.createSign('SHA256');
+          sign.update(tbsDer);
+          const signature = sign.sign(privPem);
+          const sigBit = BIT_STRING(signature);
+
+          // 7. 组装证书
+          const certDer = SEQ([tbsDer, sigAlg, sigBit]);
+
+          // 8. PEM 编码
+          const certPem =
+            '-----BEGIN CERTIFICATE-----\n' +
+            certDer.toString('base64').match(/.{1,64}/g).join('\n') +
+            '\n-----END CERTIFICATE-----\n';
+
+          fs.writeFileSync(keyPath, privPem);
+          fs.writeFileSync(certPath, certPem);
+          resolve(true);
+        } catch (e) { reject(e); }
+      });
+    } catch (e) { reject(e); }
+  });
+}
+
 // === 1. 自签证书（首次运行自动生成）===
 const certsDir = path.join(__dirname, 'certs');
 if (!fs.existsSync(certsDir)) fs.mkdirSync(certsDir, { recursive: true });
@@ -262,14 +415,46 @@ const keyPath = path.join(certsDir, 'key.pem');
 if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
   console.log('[cert] 生成自签证书…');
   const ips = getLanIps();
-  const san = ['localhost', '127.0.0.1', ...ips].map(ip => `IP:${ip}`).join(',');
+  const allHosts = ['localhost', '127.0.0.1', ...ips];
+  const san = allHosts.map(h => (h.match(/^(\d{1,3}\.){3}\d{1,3}$/) ? `IP:${h}` : `DNS:${h}`)).join(',');
   const sanFile = path.join(certsDir, 'san.cnf');
-  fs.writeFileSync(sanFile, `[v3]\nsubjectAltName=${san}\nextendedKeyUsage=serverAuth\n`);
-  const { status } = spawnSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048',
-    '-keyout', keyPath, '-out', certPath, '-days', '3650', '-nodes',
-    '-subj', '/CN=SayIn',
-    '-extfile', sanFile, '-extensions', 'v3'], { stdio: 'inherit' });
-  if (status !== 0) { console.error('[cert] 证书生成失败，请安装 openssl'); process.exit(1); }
+  // 使用 -config 完整配置文件，兼容 LibreSSL (macOS /usr/bin) 和 OpenSSL (brew)
+  // LibreSSL 的 req -x509 不支持 -extfile / -extensions 参数
+  fs.writeFileSync(sanFile,
+    `[req]\ndistinguished_name = dn\nx509_extensions = v3\nprompt = no\n\n` +
+    `[dn]\nCN = SayIn\n\n` +
+    `[v3]\nsubjectAltName = ${san}\nextendedKeyUsage = serverAuth\n` +
+    `basicConstraints = CA:FALSE\nkeyUsage = digitalSignature, keyEncipherment\n`);
+
+  // 优先尝试 brew 安装的 OpenSSL，其次系统 openssl，最后 Node crypto 兜底
+  const opensslCandidates = [
+    '/opt/homebrew/bin/openssl',
+    '/usr/local/bin/openssl',
+    'openssl',
+  ];
+  let opensslOk = false;
+  for (const bin of opensslCandidates) {
+    try {
+      const args = ['req', '-x509', '-newkey', 'rsa:2048',
+        '-keyout', keyPath, '-out', certPath, '-days', '3650', '-nodes',
+        '-config', sanFile];
+      const r = spawnSync(bin, args, { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status === 0) { opensslOk = true; break; }
+    } catch {}
+  }
+
+  // 兜底：Node.js crypto 原生生成自签证书（不依赖外部 openssl）
+  if (!opensslOk) {
+    console.log('[cert] openssl 不可用，使用 Node.js 内置 crypto 生成…');
+    try {
+      await generateCertNative(keyPath, certPath, allHosts);
+      opensslOk = fs.existsSync(certPath) && fs.existsSync(keyPath);
+    } catch (e) {
+      console.error('[cert] 兜底方案失败：', e.message);
+    }
+  }
+
+  if (!opensslOk) { console.error('[cert] 证书生成失败，请手动安装 openssl：brew install openssl'); process.exit(1); }
   console.log('[cert] 证书已生成');
 }
 
